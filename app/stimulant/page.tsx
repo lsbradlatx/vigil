@@ -78,7 +78,6 @@ export default function StimulantPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [formSubstance, setFormSubstance] = useState<Substance>("CAFFEINE");
-  const [formAmount, setFormAmount] = useState("");
   const [formAmountMg, setFormAmountMg] = useState<string>("");
   const [formLoggedAt, setFormLoggedAt] = useState(() =>
     format(new Date(), "yyyy-MM-dd'T'HH:mm")
@@ -138,7 +137,6 @@ export default function StimulantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           substance: formSubstance,
-          amount: formAmount.trim() || null,
           amountMg: formAmountMg.trim() ? parseFloat(formAmountMg) : null,
           loggedAt: new Date(formLoggedAt).toISOString(),
           notes: formNotes.trim() || null,
@@ -147,7 +145,6 @@ export default function StimulantPage() {
       if (!res.ok) throw new Error("Failed to log");
       const created = await res.json();
       setLogs((prev) => [created, ...prev]);
-      setFormAmount("");
       setFormAmountMg("");
       setFormNotes("");
       setFormLoggedAt(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
@@ -198,19 +195,7 @@ export default function StimulantPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-obsidian mb-1">
-              Amount (optional)
-            </label>
-            <input
-              type="text"
-              value={formAmount}
-              onChange={(e) => setFormAmount(e.target.value)}
-              placeholder="e.g. 1 cup, 10mg"
-              className="input-deco w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-obsidian mb-1">
-              Amount (mg) — for daily total
+              Amount (mg)
             </label>
             <input
               type="number"
