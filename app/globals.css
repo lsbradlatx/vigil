@@ -10,20 +10,88 @@
   --font-body: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
 }
 
-/* Tailwind compatibility: map old utility names to design system */
-@layer components {
-  .btn-deco {
-    @apply btn btn--secondary;
-  }
-  .btn-deco-primary {
-    @apply btn btn--accent;
-  }
-  .card-deco {
-    @apply card;
-  }
-  .input-deco {
-    @apply input;
-  }
+/* Compatibility aliases: same styles as design system .btn, .card, .input */
+.btn-deco {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--btn-primary-font);
+  font-size: var(--btn-primary-size);
+  font-weight: var(--btn-primary-weight);
+  letter-spacing: var(--btn-primary-tracking);
+  text-transform: uppercase;
+  border: var(--btn-secondary-border);
+  border-radius: var(--btn-secondary-radius);
+  padding: var(--btn-primary-padding);
+  cursor: pointer;
+  transition: var(--transition-color), transform var(--duration-base) var(--ease-out);
+  white-space: nowrap;
+  text-decoration: none;
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+}
+.btn-deco:hover {
+  background-color: var(--btn-secondary-bg-hover);
+  color: var(--btn-secondary-text-hover);
+  transform: translateY(-1px);
+}
+
+.btn-deco-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--btn-primary-font);
+  font-size: var(--btn-primary-size);
+  font-weight: var(--btn-primary-weight);
+  letter-spacing: var(--btn-primary-tracking);
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: var(--btn-accent-radius);
+  padding: var(--btn-primary-padding);
+  cursor: pointer;
+  transition: var(--transition-color), transform var(--duration-base) var(--ease-out);
+  white-space: nowrap;
+  text-decoration: none;
+  background-color: var(--btn-accent-bg);
+  color: var(--btn-accent-text);
+}
+.btn-deco-primary:hover {
+  background-color: var(--btn-accent-bg-hover);
+  transform: translateY(-1px);
+}
+
+.card-deco {
+  background-color: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  box-shadow: var(--card-shadow);
+  transition: var(--transition-shadow), transform var(--duration-base) var(--ease-out);
+}
+.card-deco:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.input-deco {
+  width: 100%;
+  background-color: var(--input-bg);
+  border: var(--input-border);
+  border-radius: var(--input-radius);
+  padding: var(--input-padding);
+  font-family: var(--font-body);
+  font-size: var(--input-font-size);
+  color: var(--input-text);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-in-out);
+}
+.input-deco::placeholder {
+  color: var(--input-placeholder);
+}
+.input-deco:focus {
+  border-color: var(--color-accent);
 }
 
 /* React Big Calendar — design system theme */
