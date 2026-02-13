@@ -1,0 +1,37 @@
+// Prisma schema for StoicSips - SQLite (single user, no auth)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  title     String
+  completed Boolean  @default(false)
+  dueDate   DateTime?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model CalendarEvent {
+  id        String   @id @default(cuid())
+  title     String
+  start     DateTime
+  end       DateTime
+  allDay    Boolean  @default(false)
+  color     String?
+  createdAt DateTime @default(now())
+}
+
+model StimulantLog {
+  id       String   @id @default(cuid())
+  substance String  // CAFFEINE | ADDERALL | NICOTINE (SQLite has no enums)
+  amount   String?
+  loggedAt DateTime
+  notes    String?
+}

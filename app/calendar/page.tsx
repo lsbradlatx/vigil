@@ -1,0 +1,267 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
+import { format, parse, startOfWeek, getDay } from "date-fns";
+import { enUS } from "date-fns/locale";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+
+const locales = { "en-US": enUS };
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
+
+type CalendarEvent = {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  allDay?: boolean;
+  color?: string | null;
+};
+
+type ApiEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  color: string | null;
+};
+
+function toEvent(e: ApiEvent): CalendarEvent & { resource?: ApiEvent } {
+  return {
+    id: e.id,
+    title: e.title,
+    start: new Date(e.start),
+    end: new Date(e.end),
+    allDay: e.allDay,
+    color: e.color,
+    resource: e,
+  };
+}
+
+export default function CalendarPage() {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<(CalendarEvent & { resource?: ApiEvent }) | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formTitle, setFormTitle] = useState("");
+  const [formStart, setFormStart] = useState("");
+  const [formEnd, setFormEnd] = useState("");
+  const [formAllDay, setFormAllDay] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const fetchEvents = useCallback(async (start?: Date, end?: Date) => {
+    try {
+      setError(null);
+      let url = "/api/events";
+      if (start && end) {
+        url += `?start=${start.toISOString()}&end=${end.toISOString()}`;
+      }
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to load events");
+      const data: ApiEvent[] = await res.json();
+      setEvents(data.map(toEvent));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  const handleSelectSlot = useCallback((slot: { start: Date; end: Date }) => {
+    setSelectedEvent(null);
+    setFormTitle("");
+    setFormStart(format(slot.start, "yyyy-MM-dd'T'HH:mm"));
+    setFormEnd(format(slot.end, "yyyy-MM-dd'T'HH:mm"));
+    setFormAllDay(false);
+    setShowForm(true);
+  }, []);
+
+  const handleSelectEvent = useCallback((event: CalendarEvent & { resource?: ApiEvent }) => {
+    setSelectedEvent(event);
+    setFormTitle(event.title);
+    setFormStart(format(event.start, "yyyy-MM-dd'T'HH:mm"));
+    setFormEnd(format(event.end, "yyyy-MM-dd'T'HH:mm"));
+    setFormAllDay(!!event.allDay);
+    setShowForm(true);
+  }, []);
+
+  const saveEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formTitle.trim() || !formStart || !formEnd || saving) return;
+    setSaving(true);
+    try {
+      const payload = {
+        title: formTitle.trim(),
+        start: new Date(formStart).toISOString(),
+        end: new Date(formEnd).toISOString(),
+        allDay: formAllDay,
+      };
+      if (selectedEvent?.id) {
+        const res = await fetch(`/api/events/${selectedEvent.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Update failed");
+        const updated = await res.json();
+        setEvents((prev) =>
+          prev.map((ev) => (ev.id === updated.id ? toEvent(updated) : ev))
+        );
+      } else {
+        const res = await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Create failed");
+        const created = await res.json();
+        setEvents((prev) => [...prev, toEvent(created)]);
+      }
+      setShowForm(false);
+      setSelectedEvent(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteEvent = async () => {
+    if (!selectedEvent?.id) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/events/${selectedEvent.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setEvents((prev) => prev.filter((e) => e.id !== selectedEvent.id));
+      setShowForm(false);
+      setSelectedEvent(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setSelectedEvent(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="card-deco max-w-4xl mx-auto text-center py-12 text-charcoal/70">
+        Loading calendar…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="font-serif text-3xl font-semibold text-charcoal">Calendar</h1>
+
+      {error && (
+        <div className="rounded-deco border border-red-300 bg-red-50 text-red-800 px-4 py-2 text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="card-deco overflow-hidden">
+        <div className="rbc-calendar rbc-deco">
+          <BigCalendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ minHeight: 500 }}
+            onSelectSlot={handleSelectSlot}
+            onSelectEvent={handleSelectEvent}
+            selectable
+          />
+        </div>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-charcoal/40 flex items-center justify-center z-20 p-4">
+          <div className="card-deco max-w-md w-full shadow-xl">
+            <h2 className="font-serif text-xl font-semibold text-charcoal mb-4">
+              {selectedEvent ? "Edit event" : "New event"}
+            </h2>
+            <form onSubmit={saveEvent} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-charcoal mb-1">Title</label>
+                <input
+                  type="text"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  className="input-deco w-full"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-charcoal mb-1">Start</label>
+                <input
+                  type="datetime-local"
+                  value={formStart}
+                  onChange={(e) => setFormStart(e.target.value)}
+                  className="input-deco w-full"
+                  disabled={formAllDay}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-charcoal mb-1">End</label>
+                <input
+                  type="datetime-local"
+                  value={formEnd}
+                  onChange={(e) => setFormEnd(e.target.value)}
+                  className="input-deco w-full"
+                  disabled={formAllDay}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-charcoal">
+                <input
+                  type="checkbox"
+                  checked={formAllDay}
+                  onChange={(e) => setFormAllDay(e.target.checked)}
+                  className="rounded border-gold text-gold"
+                />
+                All day
+              </label>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="btn-deco-primary" disabled={saving}>
+                  {saving ? "Saving…" : "Save"}
+                </button>
+                {selectedEvent && (
+                  <button
+                    type="button"
+                    onClick={deleteEvent}
+                    className="btn-deco text-red-600 hover:bg-red-50"
+                    disabled={saving}
+                  >
+                    Delete
+                  </button>
+                )}
+                <button type="button" onClick={closeForm} className="btn-deco">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
