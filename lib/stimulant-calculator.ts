@@ -11,6 +11,8 @@ export type OptimizationMode = "health" | "productivity";
 export interface SubstanceLimits {
   /** Max doses per 24h (common guidelines). */
   maxDosesPerDay: number;
+  /** Max mg per 24h when amount is tracked (e.g. 400 caffeine, 60 adderall). */
+  maxMgPerDay: number;
   /** Minimum hours between doses. */
   minSpacingHours: number;
   /** Latest cutoff: no dose after (sleepBy - this many hours). */
@@ -23,6 +25,8 @@ export interface SubstanceModeParams {
   cutoffHoursBeforeSleep: number;
   spacingHours: number;
   maxDosesPerDay: number;
+  /** Max mg per day in this mode (health lower, productivity higher). */
+  maxMgPerDay: number;
 }
 
 export interface SubstanceConfig {
@@ -44,6 +48,7 @@ export const SUBSTANCE_CONFIG: Record<SubstanceType, SubstanceConfig> = {
     label: "Caffeine",
     limits: {
       maxDosesPerDay: 4,
+      maxMgPerDay: 400,
       minSpacingHours: 3,
       minCutoffHoursBeforeSleep: 6,
       label: "Caffeine",
@@ -52,11 +57,13 @@ export const SUBSTANCE_CONFIG: Record<SubstanceType, SubstanceConfig> = {
       cutoffHoursBeforeSleep: 8,
       spacingHours: 5,
       maxDosesPerDay: 2,
+      maxMgPerDay: 200,
     },
     productivity: {
       cutoffHoursBeforeSleep: 6,
       spacingHours: 4,
       maxDosesPerDay: 4,
+      maxMgPerDay: 400,
     },
   },
   ADDERALL: {
@@ -65,6 +72,7 @@ export const SUBSTANCE_CONFIG: Record<SubstanceType, SubstanceConfig> = {
     label: "Adderall",
     limits: {
       maxDosesPerDay: 2,
+      maxMgPerDay: 60,
       minSpacingHours: 8,
       minCutoffHoursBeforeSleep: 10,
       label: "Adderall",
@@ -73,11 +81,13 @@ export const SUBSTANCE_CONFIG: Record<SubstanceType, SubstanceConfig> = {
       cutoffHoursBeforeSleep: 14,
       spacingHours: 12,
       maxDosesPerDay: 1,
+      maxMgPerDay: 30,
     },
     productivity: {
       cutoffHoursBeforeSleep: 10,
       spacingHours: 8,
       maxDosesPerDay: 2,
+      maxMgPerDay: 60,
     },
   },
   NICOTINE: {
@@ -86,6 +96,7 @@ export const SUBSTANCE_CONFIG: Record<SubstanceType, SubstanceConfig> = {
     label: "Nicotine",
     limits: {
       maxDosesPerDay: 8,
+      maxMgPerDay: 24, // ~1mg per typical dose if counting mg; or use as "dose units"
       minSpacingHours: 2,
       minCutoffHoursBeforeSleep: 3,
       label: "Nicotine",
@@ -94,11 +105,13 @@ export const SUBSTANCE_CONFIG: Record<SubstanceType, SubstanceConfig> = {
       cutoffHoursBeforeSleep: 4,
       spacingHours: 3,
       maxDosesPerDay: 5,
+      maxMgPerDay: 15,
     },
     productivity: {
       cutoffHoursBeforeSleep: 3,
       spacingHours: 2,
       maxDosesPerDay: 8,
+      maxMgPerDay: 24,
     },
   },
 };
@@ -120,6 +133,12 @@ export interface NextDoseWindow {
   message: string;
   /** True if user is at or over recommended limit for today. */
   atLimit?: boolean;
+  /** Total mg logged today for this substance (if amounts tracked). */
+  totalMgToday?: number;
+  /** Max recommended mg today for current mode. */
+  maxMgPerDay?: number;
+  /** Remaining mg allowed today (max - total), 0 if at limit. */
+  remainingMgToday?: number;
 }
 
 /**
@@ -176,13 +195,38 @@ export function countDosesLast24h(
 }
 
 /**
- * Given last dose time, mode, and today's dose count, suggests next dose window (never above recommended limits).
+ * Sum total mg per substance in the last 24h. Logs without amountMg are not counted in the sum.
+ */
+export function sumTotalMgLast24h(
+  logs: { substance: string; loggedAt: Date; amountMg: number | null }[],
+  now: Date
+): Record<SubstanceType, number> {
+  const dayAgo = new Date(now);
+  dayAgo.setDate(dayAgo.getDate() - 1);
+  const sums: Record<SubstanceType, number> = {
+    CAFFEINE: 0,
+    ADDERALL: 0,
+    NICOTINE: 0,
+  };
+  for (const log of logs) {
+    if (log.loggedAt >= dayAgo && log.substance in sums && log.amountMg != null && Number.isFinite(log.amountMg)) {
+      sums[log.substance as SubstanceType] += log.amountMg;
+    }
+  }
+  return sums;
+}
+
+/**
+ * Given last dose time, mode, dose count, and total mg today, suggests next dose window (never above recommended limits).
+ * When totalMgTodayBySubstance is provided, at-limit and messages use mg; spacing can be extended for larger last doses.
  */
 export function getNextDoseWindows(
   lastDoseBySubstance: Partial<Record<SubstanceType, Date>>,
   now: Date,
   mode: OptimizationMode,
-  dosesTodayBySubstance: Record<SubstanceType, number>
+  dosesTodayBySubstance: Record<SubstanceType, number>,
+  totalMgTodayBySubstance?: Partial<Record<SubstanceType, number>>,
+  lastDoseAmountMgBySubstance?: Partial<Record<SubstanceType, number>>
 ): NextDoseWindow[] {
   const results: NextDoseWindow[] = [];
   const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "NICOTINE"];
@@ -192,16 +236,29 @@ export function getNextDoseWindows(
     const params = config[mode];
     const lastDose = lastDoseBySubstance[substance];
     const dosesToday = dosesTodayBySubstance[substance] ?? 0;
-    const atLimit = dosesToday >= params.maxDosesPerDay;
+    const totalMg = totalMgTodayBySubstance?.[substance] ?? 0;
+    const lastDoseMg = lastDoseAmountMgBySubstance?.[substance];
+    const hasAmountData = totalMg > 0 || totalMgTodayBySubstance != null;
+
+    const atLimitByDose = dosesToday >= params.maxDosesPerDay;
+    const atLimitByMg = hasAmountData && totalMg >= params.maxMgPerDay;
+    const atLimit = atLimitByDose || atLimitByMg;
+    const remainingMg = Math.max(0, params.maxMgPerDay - totalMg);
 
     if (atLimit) {
+      const reason = atLimitByMg
+        ? `At recommended limit (${totalMg}mg / ${params.maxMgPerDay}mg per day).`
+        : `At recommended limit (${params.maxDosesPerDay} ${params.maxDosesPerDay === 1 ? "dose" : "doses"}/day).`;
       results.push({
         substance,
         label: config.label,
         windowStart: now.toISOString(),
         windowEnd: now.toISOString(),
-        message: `At recommended limit (${params.maxDosesPerDay} ${params.maxDosesPerDay === 1 ? "dose" : "doses"}/day). Wait until tomorrow.`,
+        message: `${reason} Wait until tomorrow.`,
         atLimit: true,
+        totalMgToday: totalMg || undefined,
+        maxMgPerDay: params.maxMgPerDay,
+        remainingMgToday: 0,
       });
       continue;
     }
@@ -210,23 +267,39 @@ export function getNextDoseWindows(
     let windowEnd: Date;
     let message: string;
 
+    // Spacing: base from params; extend if last dose was large (e.g. 1 extra hour per 100mg over 100 for caffeine)
+    let minSpacing = params.spacingHours;
+    if (lastDoseMg != null && lastDoseMg > 0 && substance === "CAFFEINE" && lastDoseMg > 100) {
+      const extraHours = Math.min(2, Math.floor((lastDoseMg - 100) / 100));
+      minSpacing = params.spacingHours + extraHours;
+    } else if (lastDoseMg != null && lastDoseMg > 0 && substance === "ADDERALL" && lastDoseMg > 20) {
+      const extraHours = lastDoseMg > 30 ? 2 : 1;
+      minSpacing = params.spacingHours + extraHours;
+    }
+
     if (!lastDose) {
       windowStart = new Date(now);
       windowEnd = new Date(now);
       windowEnd.setHours(windowEnd.getHours() + 1);
-      message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (Max ${params.maxDosesPerDay}/day in ${mode} mode.)`;
+      if (hasAmountData && params.maxMgPerDay > 0) {
+        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${params.maxMgPerDay}mg recommended in ${mode} mode.)`;
+      } else {
+        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (Max ${params.maxDosesPerDay}/day in ${mode} mode.)`;
+      }
       results.push({
         substance,
         label: config.label,
         windowStart: windowStart.toISOString(),
         windowEnd: windowEnd.toISOString(),
         message,
+        totalMgToday: totalMg || undefined,
+        maxMgPerDay: params.maxMgPerDay,
+        remainingMgToday: remainingMg,
       });
       continue;
     }
 
     const elapsedHours = (now.getTime() - lastDose.getTime()) / (60 * 60 * 1000);
-    const minSpacing = params.spacingHours;
 
     if (elapsedHours < minSpacing) {
       windowStart = new Date(lastDose);
@@ -238,12 +311,22 @@ export function getNextDoseWindows(
         windowEnd = new Date(now);
         windowEnd.setHours(windowEnd.getHours() + 1);
       }
-      message = `Next ${config.label.toLowerCase()} suggested after ${formatTime(windowStart)} (${minSpacing}h after last dose).`;
+      const spacingNote = minSpacing > params.spacingHours && lastDoseMg != null
+        ? ` (${minSpacing}h after last dose of ${lastDoseMg}mg)`
+        : ` (${minSpacing}h after last dose)`;
+      message = `Next ${config.label.toLowerCase()} suggested after ${formatTime(windowStart)}${spacingNote}.`;
+      if (hasAmountData && remainingMg > 0) {
+        message += ` Up to ${remainingMg}mg more today.`;
+      }
     } else {
       windowStart = new Date(now);
       windowEnd = new Date(now);
       windowEnd.setHours(windowEnd.getHours() + 1);
-      message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${dosesToday + 1}/${params.maxDosesPerDay} today.)`;
+      if (hasAmountData && params.maxMgPerDay > 0) {
+        message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${params.maxMgPerDay}mg — ${remainingMg}mg remaining.)`;
+      } else {
+        message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${dosesToday + 1}/${params.maxDosesPerDay} today.)`;
+      }
     }
 
     results.push({
@@ -252,6 +335,9 @@ export function getNextDoseWindows(
       windowStart: windowStart.toISOString(),
       windowEnd: windowEnd.toISOString(),
       message,
+      totalMgToday: totalMg || undefined,
+      maxMgPerDay: params.maxMgPerDay,
+      remainingMgToday: remainingMg,
     });
   }
   return results;

@@ -10,6 +10,7 @@ type StimulantLog = {
   id: string;
   substance: Substance;
   amount: string | null;
+  amountMg: number | null;
   loggedAt: string;
   notes: string | null;
 };
@@ -29,6 +30,9 @@ type NextDoseWindow = {
   windowEnd: string;
   message: string;
   atLimit?: boolean;
+  totalMgToday?: number;
+  maxMgPerDay?: number;
+  remainingMgToday?: number;
 };
 
 type OptimizationMode = "health" | "productivity";
@@ -75,6 +79,7 @@ export default function StimulantPage() {
 
   const [formSubstance, setFormSubstance] = useState<Substance>("CAFFEINE");
   const [formAmount, setFormAmount] = useState("");
+  const [formAmountMg, setFormAmountMg] = useState<string>("");
   const [formLoggedAt, setFormLoggedAt] = useState(() =>
     format(new Date(), "yyyy-MM-dd'T'HH:mm")
   );
@@ -134,6 +139,7 @@ export default function StimulantPage() {
         body: JSON.stringify({
           substance: formSubstance,
           amount: formAmount.trim() || null,
+          amountMg: formAmountMg.trim() ? parseFloat(formAmountMg) : null,
           loggedAt: new Date(formLoggedAt).toISOString(),
           notes: formNotes.trim() || null,
         }),
@@ -142,6 +148,7 @@ export default function StimulantPage() {
       const created = await res.json();
       setLogs((prev) => [created, ...prev]);
       setFormAmount("");
+      setFormAmountMg("");
       setFormNotes("");
       setFormLoggedAt(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
       fetchOptimizer();
@@ -200,6 +207,21 @@ export default function StimulantPage() {
               placeholder="e.g. 1 cup, 10mg"
               className="input-deco w-full"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-obsidian mb-1">
+              Amount (mg) — for daily total
+            </label>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={formAmountMg}
+              onChange={(e) => setFormAmountMg(e.target.value)}
+              placeholder="e.g. 100"
+              className="input-deco w-full"
+            />
+            <p className="text-graphite text-xs mt-0.5">Used to recommend next dose by total mg per day.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-obsidian mb-1">
@@ -325,6 +347,12 @@ export default function StimulantPage() {
                   >
                     <span className="font-medium text-sage">{w.label}:</span>{" "}
                     {w.message}
+                    {w.totalMgToday != null && w.maxMgPerDay != null && (
+                      <span className="block mt-1 text-graphite text-xs">
+                        {w.totalMgToday}mg today
+                        {w.remainingMgToday != null && w.remainingMgToday > 0 && ` · ${w.remainingMgToday}mg remaining`}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -383,8 +411,10 @@ export default function StimulantPage() {
                 className="flex flex-wrap items-baseline gap-2 text-sm border-b border-[var(--color-border)] pb-2 last:border-0"
               >
                 <span className="font-medium text-sage">{log.substance}</span>
-                {log.amount && (
-                  <span className="text-obsidian/80">{log.amount}</span>
+                {(log.amount || log.amountMg != null) && (
+                  <span className="text-obsidian/80">
+                    {log.amount || `${log.amountMg}mg`}
+                  </span>
                 )}
                 <span className="text-graphite">
                   {format(new Date(log.loggedAt), "MMM d, h:mm a")}

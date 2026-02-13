@@ -31,7 +31,8 @@ model CalendarEvent {
 model StimulantLog {
   id       String   @id @default(cuid())
   substance String  // CAFFEINE | ADDERALL | NICOTINE (SQLite has no enums)
-  amount   String?
+  amount   String?  // display e.g. "100mg", "1 cup"
+  amountMg Float?   // numeric mg for daily total (caffeine/adderall); nicotine in mg
   loggedAt DateTime
   notes    String?
 }

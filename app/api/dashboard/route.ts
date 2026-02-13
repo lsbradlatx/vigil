@@ -5,6 +5,7 @@ import {
   getNextDoseWindows,
   getDoseForPeakAt,
   countDosesLast24h,
+  sumTotalMgLast24h,
   type SubstanceType,
   type OptimizationMode,
 } from "@/lib/stimulant-calculator";
@@ -71,13 +72,21 @@ export async function GET(request: NextRequest) {
     }
 
     const lastDoseBySubstance: Partial<Record<SubstanceType, Date>> = {};
+    const lastDoseAmountMgBySubstance: Partial<Record<SubstanceType, number>> = {};
     for (const log of recentLogs) {
       if (!lastDoseBySubstance[log.substance as SubstanceType]) {
         lastDoseBySubstance[log.substance as SubstanceType] = log.loggedAt;
+        if (log.amountMg != null) {
+          lastDoseAmountMgBySubstance[log.substance as SubstanceType] = log.amountMg;
+        }
       }
     }
     const dosesToday = countDosesLast24h(
       recentLogs.map((l) => ({ substance: l.substance, loggedAt: l.loggedAt })),
+      now
+    );
+    const totalMgToday = sumTotalMgLast24h(
+      recentLogs.map((l) => ({ substance: l.substance, loggedAt: l.loggedAt, amountMg: l.amountMg })),
       now
     );
 
@@ -86,7 +95,9 @@ export async function GET(request: NextRequest) {
       lastDoseBySubstance,
       now,
       mode,
-      dosesToday
+      dosesToday,
+      totalMgToday,
+      lastDoseAmountMgBySubstance
     );
 
     const nextEventToday = events.find((e) => new Date(e.start) > now);

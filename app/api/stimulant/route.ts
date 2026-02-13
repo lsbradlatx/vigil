@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { substance, amount, loggedAt, notes } = body as {
+    const { substance, amount, amountMg, loggedAt, notes } = body as {
       substance: string;
       amount?: string | null;
+      amountMg?: number | null;
       loggedAt?: string;
       notes?: string | null;
     };
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
       data: {
         substance,
         amount: amount?.trim() ?? null,
+        amountMg: amountMg != null && Number.isFinite(amountMg) ? amountMg : null,
         loggedAt: loggedAt ? new Date(loggedAt) : new Date(),
         notes: notes?.trim() ?? null,
       },
