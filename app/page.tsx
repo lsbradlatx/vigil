@@ -1,38 +1,289 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { format } from "date-fns";
+
+type CalendarEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+};
+
+type Task = {
+  id: string;
+  title: string;
+  completed: boolean;
+  dueDate: string | null;
+  order: number;
+};
+
+type Cutoff = {
+  substance: string;
+  label: string;
+  message: string;
+  maxDosesPerDay: number;
+};
+
+type NextDoseWindow = {
+  substance: string;
+  label: string;
+  message: string;
+  atLimit?: boolean;
+};
+
+type DoseForPeak = {
+  substance: string;
+  label: string;
+  takeByFormatted: string;
+  message: string;
+  afterCutoff?: boolean;
+};
+
+type DashboardData = {
+  date: string;
+  mode: string;
+  events: CalendarEvent[];
+  tasks: Task[];
+  cutoffs: Cutoff[];
+  nextDoseWindows: NextDoseWindow[];
+  nextEventToday: { id: string; title: string; start: string; end: string } | null;
+  doseForPeakAtNextEvent: DoseForPeak[];
+};
 
 export default function HomePage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sleepBy, setSleepBy] = useState("22:00");
+  const [mode, setMode] = useState<"health" | "productivity">("health");
+
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      setError(null);
+      const params = new URLSearchParams({
+        sleepBy,
+        mode,
+      });
+      const res = await fetch(`/api/dashboard?${params}`);
+      if (!res.ok) throw new Error("Failed to load dashboard");
+      const json = await res.json();
+      setData(json);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }, [sleepBy, mode]);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
   return (
     <div className="space-y-8">
-      <section className="text-center py-8">
+      <section className="text-center py-4">
         <h1 className="font-serif text-4xl md:text-5xl font-semibold text-charcoal mb-2">
           StoicSips
         </h1>
         <p className="text-charcoal/80 text-lg max-w-xl mx-auto">
-          Schedule your day, track your tasks, and optimize when you use caffeine, Adderall, or nicotine — so you stay focused without sacrificing sleep.
+          Your day, tasks, and stimulant timing in one place.
         </p>
       </section>
 
-      <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-        <Link
-          href="/calendar"
-          className="card-deco block hover:shadow-gold transition-shadow"
-        >
-          <h2 className="font-serif text-xl font-semibold text-forest mb-1">Calendar</h2>
-          <p className="text-charcoal/80 text-sm">View and manage your events in a simple month view.</p>
+      {error && (
+        <div className="rounded-deco border border-red-300 bg-red-50 text-red-800 px-4 py-2 text-sm">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="card-deco max-w-3xl mx-auto text-center py-12 text-charcoal/70">
+          Loading your day…
+        </div>
+      ) : data != null ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+          {/* Today's events */}
+          <section className="card-deco md:col-span-1">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-serif text-xl font-semibold text-forest">
+                Today&apos;s schedule
+              </h2>
+              <Link
+                href="/calendar"
+                className="text-sm text-gold hover:underline"
+              >
+                Calendar
+              </Link>
+            </div>
+            {data.events.length === 0 ? (
+              <p className="text-charcoal/60 text-sm">No events today.</p>
+            ) : (
+              <ul className="space-y-2">
+                {data.events.map((e) => (
+                  <li
+                    key={e.id}
+                    className="text-sm border-l-2 border-forest/50 pl-2 py-0.5"
+                  >
+                    <span className="font-medium text-charcoal">{e.title}</span>
+                    <span className="text-charcoal/70 ml-1">
+                      {format(new Date(e.start), "h:mm a")}
+                      {!e.allDay && ` – ${format(new Date(e.end), "h:mm a")}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Today's tasks */}
+          <section className="card-deco md:col-span-1">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-serif text-xl font-semibold text-forest">
+                Tasks due today
+              </h2>
+              <Link href="/todos" className="text-sm text-gold hover:underline">
+                To-dos
+              </Link>
+            </div>
+            {data.tasks.length === 0 ? (
+              <p className="text-charcoal/60 text-sm">No tasks due today.</p>
+            ) : (
+              <ul className="space-y-1">
+                {data.tasks
+                  .filter((t) => !t.completed)
+                  .map((t) => (
+                    <li key={t.id} className="text-sm text-charcoal flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full border border-charcoal/50" />
+                      {t.title}
+                    </li>
+                  ))}
+                {data.tasks.filter((t) => t.completed).length > 0 && (
+                  <li className="text-charcoal/50 text-xs mt-1">
+                    {data.tasks.filter((t) => t.completed).length} completed
+                  </li>
+                )}
+              </ul>
+            )}
+          </section>
+
+          {/* Stimulant summary */}
+          <section className="card-deco md:col-span-1">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-serif text-xl font-semibold text-forest">
+                Stimulant optimizer
+              </h2>
+              <Link
+                href="/stimulant"
+                className="text-sm text-gold hover:underline"
+              >
+                Optimizer
+              </Link>
+            </div>
+            <div className="space-y-2 text-sm">
+              <p className="text-charcoal/70">
+                Mode: <strong>{data.mode}</strong> · Sleep by {sleepBy}
+              </p>
+              <div>
+                <span className="font-medium text-charcoal">Cutoffs:</span>
+                <ul className="mt-0.5 space-y-0.5 text-charcoal/80">
+                  {data.cutoffs.slice(0, 3).map((c) => (
+                    <li key={c.substance}>{c.message}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <span className="font-medium text-charcoal">Next dose:</span>
+                <ul className="mt-0.5 space-y-0.5">
+                  {data.nextDoseWindows.map((w) => (
+                    <li
+                      key={w.substance}
+                      className={w.atLimit ? "text-amber-700" : "text-charcoal/80"}
+                    >
+                      {w.label}: {w.message.slice(0, 50)}
+                      {w.message.length > 50 ? "…" : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          {/* Dose for next event — full width when present */}
+          {data.nextEventToday && data.doseForPeakAtNextEvent.length > 0 && (
+            <section className="card-deco md:col-span-2 lg:col-span-3 border-gold/80">
+              <h2 className="font-serif text-lg font-semibold text-forest mb-2">
+                For your next event: {data.nextEventToday.title}
+              </h2>
+              <p className="text-charcoal/70 text-sm mb-2">
+                {format(new Date(data.nextEventToday.start), "h:mm a")} –{" "}
+                {format(new Date(data.nextEventToday.end), "h:mm a")}
+              </p>
+              <ul className="space-y-1 text-sm">
+                {data.doseForPeakAtNextEvent.map((d) => (
+                  <li
+                    key={d.substance}
+                    className={d.afterCutoff ? "text-amber-700" : "text-charcoal/80"}
+                  >
+                    {d.message}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      ) : null}
+
+      {/* Settings strip for dashboard (sleep by + mode) */}
+      {data && (
+        <section className="card-deco max-w-2xl mx-auto flex flex-wrap items-center gap-4 text-sm">
+          <span className="text-charcoal/70">Dashboard settings:</span>
+          <label className="flex items-center gap-2">
+            Sleep by
+            <input
+              type="time"
+              value={sleepBy}
+              onChange={(e) => setSleepBy(e.target.value)}
+              className="input-deco py-1"
+            />
+          </label>
+          <div className="flex gap-3">
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="mode"
+                checked={mode === "health"}
+                onChange={() => setMode("health")}
+                className="text-gold"
+              />
+              Health
+            </label>
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="radio"
+                name="mode"
+                checked={mode === "productivity"}
+                onChange={() => setMode("productivity")}
+                className="text-gold"
+              />
+              Productivity
+            </label>
+          </div>
+        </section>
+      )}
+
+      <section className="flex flex-wrap gap-4 justify-center pt-4">
+        <Link href="/calendar" className="btn-deco">
+          Calendar
         </Link>
-        <Link
-          href="/todos"
-          className="card-deco block hover:shadow-gold transition-shadow"
-        >
-          <h2 className="font-serif text-xl font-semibold text-forest mb-1">To-dos</h2>
-          <p className="text-charcoal/80 text-sm">Keep a task list with due dates and completion tracking.</p>
+        <Link href="/todos" className="btn-deco">
+          To-dos
         </Link>
-        <Link
-          href="/stimulant"
-          className="card-deco block hover:shadow-gold transition-shadow"
-        >
-          <h2 className="font-serif text-xl font-semibold text-forest mb-1">Stimulant Optimizer</h2>
-          <p className="text-charcoal/80 text-sm">Log doses and get optimal times and cutoff suggestions.</p>
+        <Link href="/stimulant" className="btn-deco-primary">
+          Stimulant Optimizer
         </Link>
       </section>
     </div>

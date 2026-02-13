@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const dueDateParam = searchParams.get("dueDate"); // YYYY-MM-DD — tasks due on this day
+    const dueMinParam = searchParams.get("dueMin");
+    const dueMaxParam = searchParams.get("dueMax");
+
+    const where: { dueDate?: Date | { gte?: Date; lte?: Date } | null } = {};
+    if (dueDateParam) {
+      const d = new Date(dueDateParam);
+      const start = new Date(d);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(d);
+      end.setHours(23, 59, 59, 999);
+      where.dueDate = { gte: start, lte: end };
+    } else if (dueMinParam || dueMaxParam) {
+      if (dueMinParam) where.dueDate = { ...(where.dueDate as object), gte: new Date(dueMinParam) };
+      if (dueMaxParam) where.dueDate = { ...(where.dueDate as object), lte: new Date(dueMaxParam) };
+    }
+
     const tasks = await prisma.task.findMany({
+      where: Object.keys(where).length ? where : undefined,
       orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     });
     return NextResponse.json(tasks);

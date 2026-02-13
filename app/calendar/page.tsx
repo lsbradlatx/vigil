@@ -1,10 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+
+type Task = {
+  id: string;
+  title: string;
+  completed: boolean;
+  dueDate: string | null;
+};
 
 const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({
@@ -47,6 +55,8 @@ function toEvent(e: ApiEvent): CalendarEvent & { resource?: ApiEvent } {
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [tasksForViewDate, setTasksForViewDate] = useState<Task[]>([]);
+  const [viewDate, setViewDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<(CalendarEvent & { resource?: ApiEvent }) | null>(null);
@@ -75,9 +85,25 @@ export default function CalendarPage() {
     }
   }, []);
 
+  const fetchTasksForDate = useCallback(async (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    try {
+      const res = await fetch(`/api/tasks?dueDate=${dateStr}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setTasksForViewDate(data);
+    } catch {
+      setTasksForViewDate([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  useEffect(() => {
+    fetchTasksForDate(viewDate);
+  }, [viewDate, fetchTasksForDate]);
 
   const handleSelectSlot = useCallback((slot: { start: Date; end: Date }) => {
     setSelectedEvent(null);
@@ -189,10 +215,40 @@ export default function CalendarPage() {
             style={{ minHeight: 500 }}
             onSelectSlot={handleSelectSlot}
             onSelectEvent={handleSelectEvent}
+            onNavigate={(date) => setViewDate(date)}
+            date={viewDate}
             selectable
           />
         </div>
       </div>
+
+      <section className="card-deco">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-serif text-lg font-semibold text-forest">
+            Tasks due {format(viewDate, "MMMM d, yyyy")}
+          </h2>
+          <Link href="/todos" className="text-sm text-gold hover:underline">
+            To-dos
+          </Link>
+        </div>
+        {tasksForViewDate.length === 0 ? (
+          <p className="text-charcoal/60 text-sm">No tasks due this day.</p>
+        ) : (
+          <ul className="space-y-1">
+            {tasksForViewDate.map((t) => (
+              <li
+                key={t.id}
+                className={`text-sm flex items-center gap-2 ${t.completed ? "text-charcoal/50 line-through" : "text-charcoal"}`}
+              >
+                <span className={t.completed ? "text-forest" : "text-charcoal/50"}>
+                  {t.completed ? "✓" : "○"}
+                </span>
+                {t.title}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {showForm && (
         <div className="fixed inset-0 bg-charcoal/40 flex items-center justify-center z-20 p-4">

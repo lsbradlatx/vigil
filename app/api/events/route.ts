@@ -6,10 +6,27 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const startParam = searchParams.get("start");
     const endParam = searchParams.get("end");
+    const dateParam = searchParams.get("date"); // YYYY-MM-DD — events overlapping this day
 
-    const where: { start?: { gte: Date }; end?: { lte: Date } } = {};
-    if (startParam) where.start = { gte: new Date(startParam) };
-    if (endParam) where.end = { lte: new Date(endParam) };
+    type WhereClause = { start?: { gte: Date }; end?: { lte: Date }; AND?: Array<Record<string, unknown>> };
+
+    let where: WhereClause = {};
+    if (dateParam) {
+      const d = new Date(dateParam);
+      const dayStart = new Date(d);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d);
+      dayEnd.setHours(23, 59, 59, 999);
+      where = {
+        AND: [
+          { start: { lte: dayEnd } },
+          { end: { gte: dayStart } },
+        ],
+      };
+    } else {
+      if (startParam) where.start = { gte: new Date(startParam) };
+      if (endParam) where.end = { lte: new Date(endParam) };
+    }
 
     const events = await prisma.calendarEvent.findMany({
       where: Object.keys(where).length ? where : undefined,

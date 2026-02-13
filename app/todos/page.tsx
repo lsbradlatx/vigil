@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { format, isPast } from "date-fns";
 
 type Task = {
@@ -12,13 +13,34 @@ type Task = {
   createdAt: string;
 };
 
+type CalendarEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+};
+
 export default function TodosPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const fetchTodayEvents = useCallback(async () => {
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    try {
+      const res = await fetch(`/api/events?date=${dateStr}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setTodayEvents(data);
+    } catch {
+      setTodayEvents([]);
+    }
+  }, []);
 
   const fetchTasks = async () => {
     try {
@@ -37,6 +59,10 @@ export default function TodosPage() {
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  useEffect(() => {
+    fetchTodayEvents();
+  }, [fetchTodayEvents]);
 
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +124,33 @@ export default function TodosPage() {
     );
   }
 
+  const tasksDueToday = tasks.filter((t) => t.dueDate && format(new Date(t.dueDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") && !t.completed);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="font-serif text-3xl font-semibold text-charcoal">To-dos</h1>
+
+      {todayEvents.length > 0 && (
+        <section className="card-deco">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-serif text-lg font-semibold text-forest">Today&apos;s schedule</h2>
+            <Link href="/calendar" className="text-sm text-gold hover:underline">Calendar</Link>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {todayEvents.map((e) => (
+              <li key={e.id} className="text-charcoal/80">
+                <span className="font-medium">{e.title}</span>
+                <span className="ml-1">{format(new Date(e.start), "h:mm a")}{!e.allDay && ` – ${format(new Date(e.end), "h:mm a")}`}</span>
+              </li>
+            ))}
+          </ul>
+          {tasksDueToday.length > 0 && (
+            <p className="text-charcoal/60 text-xs mt-2">
+              You have {tasksDueToday.length} task{tasksDueToday.length === 1 ? "" : "s"} due today. Time stimulants with your schedule on the <Link href="/" className="text-gold hover:underline">dashboard</Link> or <Link href="/stimulant" className="text-gold hover:underline">Stimulant Optimizer</Link>.
+            </p>
+          )}
+        </section>
+      )}
 
       {error && (
         <div className="rounded-deco border border-red-300 bg-red-50 text-red-800 px-4 py-2 text-sm">
