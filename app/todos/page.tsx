@@ -190,25 +190,24 @@ export default function TodosPage() {
             return (
               <li
                 key={task.id}
-                className={`card-deco flex items-center gap-3 ${
-                  task.completed ? "opacity-70" : ""
+                className={`card-deco flex items-center gap-3 todo-item ${
+                  task.completed ? "completed" : ""
                 } ${overdue ? "border-red-400/50" : ""}`}
               >
                 <input
                   type="checkbox"
                   checked={task.completed}
                   onChange={() => toggleComplete(task.id, task.completed)}
-                  className="h-4 w-4 rounded border-sage text-sage focus:ring-sage"
+                  className="h-4 w-4 rounded border-sage text-sage focus:ring-sage cursor-pointer flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <span
-                    className={
-                      task.completed
-                        ? "text-graphite line-through"
-                        : "text-charcoal"
-                    }
+                    className={`todo-title-wrap ${
+                      task.completed ? "text-graphite" : "text-obsidian"
+                    }`}
                   >
-                    {task.title}
+                    <span>{task.title}</span>
+                    <span className="todo-strike" aria-hidden />
                   </span>
                   {task.dueDate && (
                     <span
