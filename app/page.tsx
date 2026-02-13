@@ -86,22 +86,22 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <section className="text-center py-4">
-        <h1 className="font-serif text-4xl md:text-5xl font-semibold text-charcoal mb-2">
+        <h1 className="font-display text-4xl md:text-5xl font-light text-obsidian tracking-tight mb-2">
           StoicSips
         </h1>
-        <p className="text-charcoal/80 text-lg max-w-xl mx-auto">
+        <p className="text-charcoal text-lg max-w-xl mx-auto">
           Your day, tasks, and stimulant timing in one place.
         </p>
       </section>
 
       {error && (
-        <div className="rounded-deco border border-red-300 bg-red-50 text-red-800 px-4 py-2 text-sm">
+        <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="card-deco max-w-3xl mx-auto text-center py-12 text-charcoal/70">
+        <div className="card-deco max-w-3xl mx-auto text-center py-12 text-graphite">
           Loading your day…
         </div>
       ) : data != null ? (
@@ -109,27 +109,27 @@ export default function HomePage() {
           {/* Today's events */}
           <section className="card-deco md:col-span-1">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-serif text-xl font-semibold text-forest">
+              <h2 className="font-display text-xl font-light text-sage">
                 Today&apos;s schedule
               </h2>
               <Link
                 href="/calendar"
-                className="text-sm text-gold hover:underline"
+                className="text-sm text-sage hover:underline"
               >
                 Calendar
               </Link>
             </div>
             {data.events.length === 0 ? (
-              <p className="text-charcoal/60 text-sm">No events today.</p>
+              <p className="text-graphite text-sm">No events today.</p>
             ) : (
               <ul className="space-y-2">
                 {data.events.map((e) => (
                   <li
                     key={e.id}
-                    className="text-sm border-l-2 border-forest/50 pl-2 py-0.5"
+                    className="text-sm border-l-2 border-sage/50 pl-2 py-0.5"
                   >
                     <span className="font-medium text-charcoal">{e.title}</span>
-                    <span className="text-charcoal/70 ml-1">
+                    <span className="text-graphite ml-1">
                       {format(new Date(e.start), "h:mm a")}
                       {!e.allDay && ` – ${format(new Date(e.end), "h:mm a")}`}
                     </span>
@@ -142,15 +142,15 @@ export default function HomePage() {
           {/* Today's tasks */}
           <section className="card-deco md:col-span-1">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-serif text-xl font-semibold text-forest">
+              <h2 className="font-display text-xl font-light text-sage">
                 Tasks due today
               </h2>
-              <Link href="/todos" className="text-sm text-gold hover:underline">
+              <Link href="/todos" className="text-sm text-sage hover:underline">
                 To-dos
               </Link>
             </div>
             {data.tasks.length === 0 ? (
-              <p className="text-charcoal/60 text-sm">No tasks due today.</p>
+              <p className="text-graphite text-sm">No tasks due today.</p>
             ) : (
               <ul className="space-y-1">
                 {data.tasks
@@ -162,7 +162,7 @@ export default function HomePage() {
                     </li>
                   ))}
                 {data.tasks.filter((t) => t.completed).length > 0 && (
-                  <li className="text-charcoal/50 text-xs mt-1">
+                  <li className="text-graphite text-xs mt-1">
                     {data.tasks.filter((t) => t.completed).length} completed
                   </li>
                 )}
@@ -173,23 +173,23 @@ export default function HomePage() {
           {/* Stimulant summary */}
           <section className="card-deco md:col-span-1">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-serif text-xl font-semibold text-forest">
+              <h2 className="font-display text-xl font-light text-sage">
                 Stimulant optimizer
               </h2>
               <Link
                 href="/stimulant"
-                className="text-sm text-gold hover:underline"
+                className="text-sm text-sage hover:underline"
               >
                 Optimizer
               </Link>
             </div>
             <div className="space-y-2 text-sm">
-              <p className="text-charcoal/70">
+              <p className="text-graphite">
                 Mode: <strong>{data.mode}</strong> · Sleep by {sleepBy}
               </p>
               <div>
                 <span className="font-medium text-charcoal">Cutoffs:</span>
-                <ul className="mt-0.5 space-y-0.5 text-charcoal/80">
+                <ul className="mt-0.5 space-y-0.5 text-graphite">
                   {data.cutoffs.slice(0, 3).map((c) => (
                     <li key={c.substance}>{c.message}</li>
                   ))}
@@ -201,7 +201,7 @@ export default function HomePage() {
                   {data.nextDoseWindows.map((w) => (
                     <li
                       key={w.substance}
-                      className={w.atLimit ? "text-amber-700" : "text-charcoal/80"}
+                      className={w.atLimit ? "text-amber-700" : "text-graphite"}
                     >
                       {w.label}: {w.message.slice(0, 50)}
                       {w.message.length > 50 ? "…" : ""}
@@ -214,11 +214,11 @@ export default function HomePage() {
 
           {/* Dose for next event — full width when present */}
           {data.nextEventToday && data.doseForPeakAtNextEvent.length > 0 && (
-            <section className="card-deco md:col-span-2 lg:col-span-3 border-gold/80">
-              <h2 className="font-serif text-lg font-semibold text-forest mb-2">
+            <section className="card-deco md:col-span-2 lg:col-span-3 border-sage/40">
+              <h2 className="font-display text-lg font-light text-sage mb-2">
                 For your next event: {data.nextEventToday.title}
               </h2>
-              <p className="text-charcoal/70 text-sm mb-2">
+              <p className="text-graphite text-sm mb-2">
                 {format(new Date(data.nextEventToday.start), "h:mm a")} –{" "}
                 {format(new Date(data.nextEventToday.end), "h:mm a")}
               </p>
@@ -226,7 +226,7 @@ export default function HomePage() {
                 {data.doseForPeakAtNextEvent.map((d) => (
                   <li
                     key={d.substance}
-                    className={d.afterCutoff ? "text-amber-700" : "text-charcoal/80"}
+                    className={d.afterCutoff ? "text-amber-700" : "text-graphite"}
                   >
                     {d.message}
                   </li>
@@ -240,7 +240,7 @@ export default function HomePage() {
       {/* Settings strip for dashboard (sleep by + mode) */}
       {data && (
         <section className="card-deco max-w-2xl mx-auto flex flex-wrap items-center gap-4 text-sm">
-          <span className="text-charcoal/70">Dashboard settings:</span>
+          <span className="text-graphite">Dashboard settings:</span>
           <label className="flex items-center gap-2">
             Sleep by
             <input
@@ -257,7 +257,7 @@ export default function HomePage() {
                 name="mode"
                 checked={mode === "health"}
                 onChange={() => setMode("health")}
-                className="text-gold"
+                className="text-sage"
               />
               Health
             </label>
@@ -267,7 +267,7 @@ export default function HomePage() {
                 name="mode"
                 checked={mode === "productivity"}
                 onChange={() => setMode("productivity")}
-                className="text-gold"
+                className="text-sage"
               />
               Productivity
             </label>

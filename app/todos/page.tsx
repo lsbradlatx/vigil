@@ -118,7 +118,7 @@ export default function TodosPage() {
 
   if (loading) {
     return (
-      <div className="card-deco max-w-2xl mx-auto text-center py-8 text-charcoal/70">
+      <div className="card-deco max-w-2xl mx-auto text-center py-8 text-graphite">
         Loading tasks…
       </div>
     );
@@ -128,32 +128,32 @@ export default function TodosPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="font-serif text-3xl font-semibold text-charcoal">To-dos</h1>
+      <h1 className="font-display text-3xl font-light text-obsidian">To-dos</h1>
 
       {todayEvents.length > 0 && (
         <section className="card-deco">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-serif text-lg font-semibold text-forest">Today&apos;s schedule</h2>
-            <Link href="/calendar" className="text-sm text-gold hover:underline">Calendar</Link>
+            <h2 className="font-display text-lg font-light text-sage">Today&apos;s schedule</h2>
+            <Link href="/calendar" className="text-sm text-sage hover:underline">Calendar</Link>
           </div>
           <ul className="space-y-1 text-sm">
             {todayEvents.map((e) => (
-              <li key={e.id} className="text-charcoal/80">
+              <li key={e.id} className="text-graphite">
                 <span className="font-medium">{e.title}</span>
                 <span className="ml-1">{format(new Date(e.start), "h:mm a")}{!e.allDay && ` – ${format(new Date(e.end), "h:mm a")}`}</span>
               </li>
             ))}
           </ul>
           {tasksDueToday.length > 0 && (
-            <p className="text-charcoal/60 text-xs mt-2">
-              You have {tasksDueToday.length} task{tasksDueToday.length === 1 ? "" : "s"} due today. Time stimulants with your schedule on the <Link href="/" className="text-gold hover:underline">dashboard</Link> or <Link href="/stimulant" className="text-gold hover:underline">Stimulant Optimizer</Link>.
+            <p className="text-graphite text-xs mt-2">
+              You have {tasksDueToday.length} task{tasksDueToday.length === 1 ? "" : "s"} due today. Time stimulants with your schedule on the <Link href="/" className="text-sage hover:underline">dashboard</Link> or <Link href="/stimulant" className="text-sage hover:underline">Stimulant Optimizer</Link>.
             </p>
           )}
         </section>
       )}
 
       {error && (
-        <div className="rounded-deco border border-red-300 bg-red-50 text-red-800 px-4 py-2 text-sm">
+        <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
           {error}
         </div>
       )}
@@ -181,7 +181,7 @@ export default function TodosPage() {
 
       <ul className="space-y-2">
         {tasks.length === 0 ? (
-          <li className="card-deco text-charcoal/60 text-center py-6">
+          <li className="card-deco text-graphite text-center py-6">
             No tasks yet. Add one above.
           </li>
         ) : (
@@ -198,13 +198,13 @@ export default function TodosPage() {
                   type="checkbox"
                   checked={task.completed}
                   onChange={() => toggleComplete(task.id, task.completed)}
-                  className="h-4 w-4 rounded border-gold text-gold focus:ring-gold"
+                  className="h-4 w-4 rounded border-sage text-sage focus:ring-sage"
                 />
                 <div className="flex-1 min-w-0">
                   <span
                     className={
                       task.completed
-                        ? "text-charcoal/60 line-through"
+                        ? "text-graphite line-through"
                         : "text-charcoal"
                     }
                   >
@@ -213,7 +213,7 @@ export default function TodosPage() {
                   {task.dueDate && (
                     <span
                       className={`ml-2 text-sm ${
-                        overdue ? "text-red-600" : "text-charcoal/60"
+                        overdue ? "text-red-600" : "text-graphite"
                       }`}
                     >
                       Due {format(new Date(task.dueDate), "MMM d, yyyy")}
@@ -223,7 +223,7 @@ export default function TodosPage() {
                 <button
                   type="button"
                   onClick={() => deleteTask(task.id)}
-                  className="text-charcoal/50 hover:text-red-600 text-sm px-2 py-1 rounded"
+                  className="text-graphite hover:text-red-600 text-sm px-2 py-1 rounded"
                   aria-label="Delete"
                 >
                   Delete

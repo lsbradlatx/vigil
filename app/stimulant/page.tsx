@@ -154,27 +154,27 @@ export default function StimulantPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="font-serif text-3xl font-semibold text-charcoal">
+      <h1 className="font-display text-3xl font-light text-obsidian">
         Stimulant Optimizer
       </h1>
 
-      <p className="text-charcoal/70 text-sm max-w-xl">
+      <p className="text-graphite text-sm max-w-xl">
         For awareness only; not medical advice. Choose a mode below — both stay within recommended limits. Health: earlier cutoffs, longer spacing, fewer doses. Productivity: later cutoffs, shorter spacing, more doses (still capped).
       </p>
 
       {error && (
-        <div className="rounded-deco border border-red-300 bg-red-50 text-red-800 px-4 py-2 text-sm">
+        <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
           {error}
         </div>
       )}
 
       <section className="card-deco max-w-xl">
-        <h2 className="font-serif text-xl font-semibold text-forest mb-4">
+        <h2 className="font-display text-xl font-light text-sage mb-4">
           Log a dose
         </h2>
         <form onSubmit={submitLog} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
+            <label className="block text-sm font-medium text-obsidian mb-1">
               Substance
             </label>
             <select
@@ -190,7 +190,7 @@ export default function StimulantPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
+            <label className="block text-sm font-medium text-obsidian mb-1">
               Amount (optional)
             </label>
             <input
@@ -202,7 +202,7 @@ export default function StimulantPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
+            <label className="block text-sm font-medium text-obsidian mb-1">
               When
             </label>
             <input
@@ -213,7 +213,7 @@ export default function StimulantPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">
+            <label className="block text-sm font-medium text-obsidian mb-1">
               Notes (optional)
             </label>
             <input
@@ -234,12 +234,12 @@ export default function StimulantPage() {
       </section>
 
       <section className="card-deco max-w-xl">
-        <h2 className="font-serif text-xl font-semibold text-forest mb-4">
+        <h2 className="font-display text-xl font-light text-sage mb-4">
           Recommendations
         </h2>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-charcoal mb-2">
+          <label className="block text-sm font-medium text-obsidian mb-2">
             Recommended dose mode
           </label>
           <div className="flex gap-4 flex-wrap">
@@ -250,9 +250,9 @@ export default function StimulantPage() {
                 value="health"
                 checked={mode === "health"}
                 onChange={() => setMode("health")}
-                className="text-gold focus:ring-gold"
+                className="text-sage focus:ring-sage"
               />
-              <span className="text-charcoal">Prioritize health</span>
+              <span className="text-obsidian">Prioritize health</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -261,18 +261,18 @@ export default function StimulantPage() {
                 value="productivity"
                 checked={mode === "productivity"}
                 onChange={() => setMode("productivity")}
-                className="text-gold focus:ring-gold"
+                className="text-sage focus:ring-sage"
               />
-              <span className="text-charcoal">Prioritize productivity</span>
+              <span className="text-obsidian">Prioritize productivity</span>
             </label>
           </div>
-          <p className="text-charcoal/60 text-xs mt-1">
+          <p className="text-obsidian/60 text-xs mt-1">
             Neither mode recommends doses above recommended limits.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <label className="text-charcoal">Sleep by:</label>
+          <label className="text-obsidian">Sleep by:</label>
           <input
             type="time"
             value={sleepBy}
@@ -289,20 +289,20 @@ export default function StimulantPage() {
           </button>
         </div>
         {loadingOptimizer && !optimizer ? (
-          <p className="text-charcoal/60">Loading…</p>
+          <p className="text-obsidian/60">Loading…</p>
         ) : optimizer ? (
           <div className="space-y-6">
-            <p className="text-charcoal/70 text-sm">
+            <p className="text-graphite text-sm">
               Using <strong>{optimizer.mode === "health" ? "health" : "productivity"}</strong> mode.
             </p>
             <div>
-              <h3 className="font-medium text-charcoal mb-2">Cutoff times</h3>
-              <ul className="space-y-1 text-charcoal/80">
+              <h3 className="font-medium text-obsidian mb-2">Cutoff times</h3>
+              <ul className="space-y-1 text-obsidian/80">
                 {optimizer.cutoffs.map((c) => (
                   <li key={c.substance} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-forest font-medium">{c.label}:</span>
+                    <span className="text-sage font-medium">{c.label}:</span>
                     {c.message}
-                    <span className="text-charcoal/60 text-xs">
+                    <span className="text-obsidian/60 text-xs">
                       (max {c.maxDosesPerDay}/day)
                     </span>
                   </li>
@@ -310,20 +310,20 @@ export default function StimulantPage() {
               </ul>
             </div>
             <div>
-              <h3 className="font-medium text-charcoal mb-2">
+              <h3 className="font-medium text-obsidian mb-2">
                 Next dose windows
               </h3>
               <ul className="space-y-2">
                 {optimizer.nextDoseWindows.map((w) => (
                   <li
                     key={w.substance}
-                    className={`rounded-deco border p-3 text-sm ${
+                    className={`rounded-md border p-3 text-sm ${
                       w.atLimit
                         ? "border-amber-500/60 bg-amber-50/50"
-                        : "border-gold/40 bg-cream"
+                        : "border-[var(--color-border)] bg-[var(--color-surface)]"
                     }`}
                   >
-                    <span className="font-medium text-forest">{w.label}:</span>{" "}
+                    <span className="font-medium text-sage">{w.label}:</span>{" "}
                     {w.message}
                   </li>
                 ))}
@@ -336,12 +336,12 @@ export default function StimulantPage() {
       {optimizer?.eventsToday && optimizer.eventsToday.length > 0 && (
         <section className="card-deco max-w-xl">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-serif text-xl font-semibold text-forest">
+            <h2 className="font-display text-xl font-light text-sage">
               Today&apos;s schedule
             </h2>
-            <Link href="/calendar" className="text-sm text-gold hover:underline">Calendar</Link>
+            <Link href="/calendar" className="text-sm text-sage hover:underline">Calendar</Link>
           </div>
-          <ul className="space-y-1 text-sm text-charcoal/80 mb-3">
+          <ul className="space-y-1 text-sm text-obsidian/80 mb-3">
             {optimizer.eventsToday.map((e) => (
               <li key={e.id}>
                 <span className="font-medium">{e.title}</span>
@@ -350,14 +350,14 @@ export default function StimulantPage() {
             ))}
           </ul>
           {optimizer.nextEventToday && optimizer.doseForPeakAtNextEvent && optimizer.doseForPeakAtNextEvent.length > 0 && (
-            <div className="rounded-deco border border-gold/60 bg-cream p-3">
-              <h3 className="font-medium text-charcoal mb-1">For your next event: {optimizer.nextEventToday.title}</h3>
-              <p className="text-charcoal/70 text-xs mb-2">
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-linen)] p-3">
+              <h3 className="font-medium text-obsidian mb-1">For your next event: {optimizer.nextEventToday.title}</h3>
+              <p className="text-graphite text-xs mb-2">
                 {format(new Date(optimizer.nextEventToday.start), "h:mm a")} – {format(new Date(optimizer.nextEventToday.end), "h:mm a")}
               </p>
               <ul className="space-y-0.5 text-sm">
                 {optimizer.doseForPeakAtNextEvent.map((d) => (
-                  <li key={d.substance} className={d.afterCutoff ? "text-amber-700" : "text-charcoal/80"}>
+                  <li key={d.substance} className={d.afterCutoff ? "text-amber-700" : "text-obsidian/80"}>
                     {d.message}
                   </li>
                 ))}
@@ -368,29 +368,29 @@ export default function StimulantPage() {
       )}
 
       <section className="card-deco max-w-xl">
-        <h2 className="font-serif text-xl font-semibold text-forest mb-4">
+        <h2 className="font-display text-xl font-light text-sage mb-4">
           Recent logs
         </h2>
         {loadingLogs ? (
-          <p className="text-charcoal/60">Loading…</p>
+          <p className="text-obsidian/60">Loading…</p>
         ) : logs.length === 0 ? (
-          <p className="text-charcoal/60">No logs yet. Log a dose above.</p>
+          <p className="text-obsidian/60">No logs yet. Log a dose above.</p>
         ) : (
           <ul className="space-y-2">
             {logs.map((log) => (
               <li
                 key={log.id}
-                className="flex flex-wrap items-baseline gap-2 text-sm border-b border-gold/30 pb-2 last:border-0"
+                className="flex flex-wrap items-baseline gap-2 text-sm border-b border-[var(--color-border)] pb-2 last:border-0"
               >
-                <span className="font-medium text-forest">{log.substance}</span>
+                <span className="font-medium text-sage">{log.substance}</span>
                 {log.amount && (
-                  <span className="text-charcoal/80">{log.amount}</span>
+                  <span className="text-obsidian/80">{log.amount}</span>
                 )}
-                <span className="text-charcoal/70">
+                <span className="text-graphite">
                   {format(new Date(log.loggedAt), "MMM d, h:mm a")}
                 </span>
                 {log.notes && (
-                  <span className="text-charcoal/60 italic">{log.notes}</span>
+                  <span className="text-obsidian/60 italic">{log.notes}</span>
                 )}
               </li>
             ))}

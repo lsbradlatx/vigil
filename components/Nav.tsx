@@ -21,10 +21,10 @@ export function Nav() {
           <Link
             key={href}
             href={href}
-            className={`px-3 py-2 rounded-deco font-medium transition-colors ${
+            className={`nav__link px-3 py-2 rounded-full ${
               isActive
-                ? "bg-gold/20 text-charcoal border border-gold/60"
-                : "text-charcoal/80 hover:bg-gold/10 hover:text-charcoal border border-transparent"
+                ? "!text-sage font-semibold bg-sage-light/40"
+                : ""
             }`}
           >
             {label}

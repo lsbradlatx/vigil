@@ -1,82 +1,69 @@
+@import "./design-system.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Override design-system fonts with next/font variables when available */
 :root {
-  --cream: #f5f5dc;
-  --charcoal: #2c2c2c;
-  --gold: #c9a227;
-  --gold-dark: #a67c00;
-  --forest: #1b4332;
-  --forest-light: #2d6a4f;
-  --radius-deco: 6px;
-  --shadow-gold: 0 0 15px rgba(201, 162, 39, 0.2);
+  --font-display: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-body: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
 }
 
-body {
-  @apply bg-cream text-charcoal font-sans antialiased;
-}
-
+/* Tailwind compatibility: map old utility names to design system */
 @layer components {
   .btn-deco {
-    @apply px-4 py-2 rounded-deco border border-gold bg-cream text-charcoal font-medium
-           hover:bg-gold/10 hover:shadow-gold-sm transition-all duration-200;
+    @apply btn btn--secondary;
   }
   .btn-deco-primary {
-    @apply px-4 py-2 rounded-deco border border-gold bg-gold text-cream font-medium
-           hover:bg-gold-dark hover:border-gold-dark hover:shadow-gold transition-all duration-200;
+    @apply btn btn--accent;
   }
   .card-deco {
-    @apply rounded-deco border border-gold/60 bg-cream shadow-gold-sm p-4;
+    @apply card;
   }
   .input-deco {
-    @apply rounded-deco border border-gold/70 bg-cream px-3 py-2 text-charcoal
-           placeholder:text-charcoal/50 focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold;
+    @apply input;
   }
 }
 
-/* Art deco geometric background pattern (optional subtle) */
-.bg-pattern-deco {
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30 30 60 0 30z' fill='none' stroke='%23c9a227' stroke-opacity='0.06' stroke-width='0.5'/%3E%3C/svg%3E");
-}
-
-/* React Big Calendar - Art Deco theme */
+/* React Big Calendar — design system theme */
 .rbc-deco .rbc-header {
-  border-color: rgba(201, 162, 39, 0.4);
-  padding: 8px 4px;
-  font-family: var(--font-cormorant), Georgia, serif;
-  font-weight: 600;
+  border-color: var(--color-border);
+  padding: var(--space-2) var(--space-1);
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
 }
 .rbc-deco .rbc-month-view,
 .rbc-deco .rbc-time-view {
-  border-color: rgba(201, 162, 39, 0.4);
+  border-color: var(--color-border);
 }
 .rbc-deco .rbc-day-builder .rbc-day-slot .rbc-time-slot {
-  border-color: rgba(201, 162, 39, 0.2);
+  border-color: var(--color-border);
 }
 .rbc-deco .rbc-date-cell {
-  color: #2c2c2c;
+  color: var(--color-text-primary);
 }
 .rbc-deco .rbc-off-range-bg {
-  background: #f5f5dc;
+  background: var(--color-bg);
 }
 .rbc-deco .rbc-event {
-  background: #1b4332;
-  border-color: #c9a227;
+  background: var(--color-sage);
+  border-color: var(--color-sage);
 }
 .rbc-deco .rbc-event:focus,
 .rbc-deco .rbc-today {
-  background: rgba(201, 162, 39, 0.15);
+  background: rgba(109, 115, 85, 0.12);
 }
 .rbc-deco .rbc-toolbar button {
-  color: #2c2c2c;
-  border: 1px solid rgba(201, 162, 39, 0.6);
-  border-radius: 6px;
-  background: #f5f5dc;
+  color: var(--color-text-primary);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
 }
 .rbc-deco .rbc-toolbar button:hover {
-  background: rgba(201, 162, 39, 0.15);
+  background: var(--color-bg-alt);
 }
 .rbc-deco .rbc-toolbar button.rbc-active {
-  background: rgba(201, 162, 39, 0.25);
+  background: var(--color-sage-light);
+  color: var(--color-sage);
 }
