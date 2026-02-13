@@ -161,7 +161,7 @@ export default function StimulantPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="font-display text-3xl font-light text-obsidian">
+      <h1 className="font-display text-3xl font-medium text-obsidian">
         Stimulant Optimizer
       </h1>
 
@@ -176,7 +176,7 @@ export default function StimulantPage() {
       )}
 
       <section className="card-deco max-w-xl">
-        <h2 className="font-display text-xl font-light text-sage mb-4">
+        <h2 className="font-display text-xl font-medium text-sage mb-4">
           Log a dose
         </h2>
         <form onSubmit={submitLog} className="space-y-3">
@@ -256,7 +256,7 @@ export default function StimulantPage() {
       </section>
 
       <section className="card-deco max-w-xl">
-        <h2 className="font-display text-xl font-light text-sage mb-4">
+        <h2 className="font-display text-xl font-medium text-sage mb-4">
           Recommendations
         </h2>
 
@@ -364,7 +364,7 @@ export default function StimulantPage() {
       {optimizer?.eventsToday && optimizer.eventsToday.length > 0 && (
         <section className="card-deco max-w-xl">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-display text-xl font-light text-sage">
+            <h2 className="font-display text-xl font-medium text-sage">
               Today&apos;s schedule
             </h2>
             <Link href="/calendar" className="text-sm text-sage hover:underline">Calendar</Link>
@@ -396,7 +396,7 @@ export default function StimulantPage() {
       )}
 
       <section className="card-deco max-w-xl">
-        <h2 className="font-display text-xl font-light text-sage mb-4">
+        <h2 className="font-display text-xl font-medium text-sage mb-4">
           Recent logs
         </h2>
         {loadingLogs ? (

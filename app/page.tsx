@@ -86,7 +86,7 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <section className="text-center py-4">
-        <h1 className="font-display text-4xl md:text-5xl font-light text-obsidian tracking-tight mb-2">
+        <h1 className="font-display text-4xl md:text-5xl font-medium text-obsidian tracking-tight mb-2">
           StoicSips
         </h1>
         <p className="text-charcoal text-lg max-w-xl mx-auto">
@@ -109,7 +109,7 @@ export default function HomePage() {
           {/* Today's events */}
           <section className="card-deco md:col-span-1">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-xl font-light text-sage">
+              <h2 className="font-display text-xl font-medium text-sage">
                 Today&apos;s schedule
               </h2>
               <Link
@@ -142,7 +142,7 @@ export default function HomePage() {
           {/* Today's tasks */}
           <section className="card-deco md:col-span-1">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-xl font-light text-sage">
+              <h2 className="font-display text-xl font-medium text-sage">
                 Tasks due today
               </h2>
               <Link href="/todos" className="text-sm text-sage hover:underline">
@@ -173,7 +173,7 @@ export default function HomePage() {
           {/* Stimulant summary */}
           <section className="card-deco md:col-span-1">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-xl font-light text-sage">
+              <h2 className="font-display text-xl font-medium text-sage">
                 Stimulant optimizer
               </h2>
               <Link
@@ -215,7 +215,7 @@ export default function HomePage() {
           {/* Dose for next event — full width when present */}
           {data.nextEventToday && data.doseForPeakAtNextEvent.length > 0 && (
             <section className="card-deco md:col-span-2 lg:col-span-3 border-sage/40">
-              <h2 className="font-display text-lg font-light text-sage mb-2">
+              <h2 className="font-display text-lg font-medium text-sage mb-2">
                 For your next event: {data.nextEventToday.title}
               </h2>
               <p className="text-graphite text-sm mb-2">

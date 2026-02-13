@@ -128,12 +128,12 @@ export default function TodosPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="font-display text-3xl font-light text-obsidian">To-dos</h1>
+      <h1 className="font-display text-3xl font-medium text-obsidian">To-dos</h1>
 
       {todayEvents.length > 0 && (
         <section className="card-deco">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-display text-lg font-light text-sage">Today&apos;s schedule</h2>
+            <h2 className="font-display text-lg font-medium text-sage">Today&apos;s schedule</h2>
             <Link href="/calendar" className="text-sm text-sage hover:underline">Calendar</Link>
           </div>
           <ul className="space-y-1 text-sm">

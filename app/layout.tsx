@@ -32,7 +32,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-cream">
         <header className="nav">
           <div className="container flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 h-full">
-            <a href="/" className="font-display text-2xl font-light text-obsidian tracking-tight hover:text-sage transition-colors">
+            <a href="/" className="font-display text-2xl font-medium text-obsidian tracking-tight hover:text-sage transition-colors">
               StoicSips
             </a>
             <Nav />

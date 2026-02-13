@@ -199,7 +199,7 @@
 
   --heading-font:       var(--font-display);
   --heading-color:      var(--color-text-primary);
-  --heading-weight:     var(--weight-light);
+  --heading-weight:     var(--weight-medium);
 
   --badge-bg:           var(--color-linen);
   --badge-text:         var(--color-charcoal);

@@ -197,7 +197,7 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-light text-obsidian">Calendar</h1>
+      <h1 className="font-display text-3xl font-medium text-obsidian">Calendar</h1>
 
       {error && (
         <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
@@ -224,7 +224,7 @@ export default function CalendarPage() {
 
       <section className="card-deco">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-display text-lg font-light text-sage">
+          <h2 className="font-display text-lg font-medium text-sage">
             Tasks due {format(viewDate, "MMMM d, yyyy")}
           </h2>
           <Link href="/todos" className="text-sm text-sage hover:underline">
@@ -253,7 +253,7 @@ export default function CalendarPage() {
       {showForm && (
         <div className="fixed inset-0 bg-obsidian/40 flex items-center justify-center z-20 p-4">
           <div className="card-deco max-w-md w-full shadow-xl">
-            <h2 className="font-display text-xl font-light text-obsidian mb-4">
+            <h2 className="font-display text-xl font-medium text-obsidian mb-4">
               {selectedEvent ? "Edit event" : "New event"}
             </h2>
             <form onSubmit={saveEvent} className="space-y-3">
