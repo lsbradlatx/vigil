@@ -88,6 +88,22 @@ export default function StimulantPage() {
   const [sleepBy, setSleepBy] = useState("22:00");
   const [mode, setMode] = useState<OptimizationMode>("health");
 
+  useEffect(() => {
+    const savedSleep = localStorage.getItem("stoicsips_sleepBy");
+    const savedMode = localStorage.getItem("stoicsips_mode");
+    if (savedSleep) setSleepBy(savedSleep);
+    if (savedMode === "health" || savedMode === "productivity") setMode(savedMode as OptimizationMode);
+  }, []);
+
+  const handleSleepByChange = (value: string) => {
+    setSleepBy(value);
+    localStorage.setItem("stoicsips_sleepBy", value);
+  };
+  const handleModeChange = (value: OptimizationMode) => {
+    setMode(value);
+    localStorage.setItem("stoicsips_mode", value);
+  };
+
   const fetchLogs = useCallback(async () => {
     try {
       setError(null);
@@ -256,7 +272,7 @@ export default function StimulantPage() {
                 name="mode"
                 value="health"
                 checked={mode === "health"}
-                onChange={() => setMode("health")}
+                onChange={() => handleModeChange("health")}
                 className="text-sage focus:ring-sage"
               />
               <span className="text-obsidian">Prioritize health</span>
@@ -267,7 +283,7 @@ export default function StimulantPage() {
                 name="mode"
                 value="productivity"
                 checked={mode === "productivity"}
-                onChange={() => setMode("productivity")}
+                onChange={() => handleModeChange("productivity")}
                 className="text-sage focus:ring-sage"
               />
               <span className="text-obsidian">Prioritize productivity</span>
@@ -283,7 +299,7 @@ export default function StimulantPage() {
           <input
             type="time"
             value={sleepBy}
-            onChange={(e) => setSleepBy(e.target.value)}
+            onChange={(e) => handleSleepByChange(e.target.value)}
             className="input-deco"
           />
           <button
