@@ -1,8 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { format, isPast } from "date-fns";
+import {
+  format,
+  isPast,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  addMonths,
+  subMonths,
+  isSameMonth,
+  isSameDay,
+  isToday,
+} from "date-fns";
 
 type Task = {
   id: string;
@@ -35,6 +48,20 @@ export default function TodosPage() {
   const [connectLoading, setConnectLoading] = useState(false);
   const [disconnectLoading, setDisconnectLoading] = useState(false);
   const [showConnectForm, setShowConnectForm] = useState(false);
+  const [calendarOpenForTaskId, setCalendarOpenForTaskId] = useState<string | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!calendarOpenForTaskId) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setCalendarOpenForTaskId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [calendarOpenForTaskId]);
 
   const fetchTodayEvents = useCallback(async () => {
     const dateStr = format(new Date(), "yyyy-MM-dd");
@@ -202,6 +229,34 @@ export default function TodosPage() {
     }
   };
 
+  const assignDueDate = async (taskId: string, date: Date | null) => {
+    if (taskId.startsWith("asana-")) return;
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dueDate: date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString() : null,
+        }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      const updated = await res.json();
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, dueDate: updated.dueDate } : t))
+      );
+      setCalendarOpenForTaskId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to set date");
+    }
+  };
+
+  const openCalendarFor = (taskId: string, currentDueDate: string | null) => {
+    setCalendarOpenForTaskId(taskId);
+    setCalendarMonth(
+      currentDueDate ? startOfMonth(new Date(currentDueDate)) : new Date()
+    );
+  };
+
   const isAsanaTask = (task: Task) => task.id.startsWith("asana-");
 
   if (loading) {
@@ -322,8 +377,8 @@ export default function TodosPage() {
             const overdue = task.dueDate && isPast(new Date(task.dueDate)) && !task.completed;
             const fromAsana = isAsanaTask(task);
             return (
+              <React.Fragment key={task.id}>
               <li
-                key={task.id}
                 className={`card-deco flex items-center gap-3 todo-item ${
                   task.completed ? "completed" : ""
                 } ${overdue ? "border-red-400/50" : ""} ${fromAsana ? "border-l-4 border-l-[var(--color-slate-blue)]" : ""}`}
@@ -344,12 +399,24 @@ export default function TodosPage() {
                     <span className="todo-strike" aria-hidden />
                   </span>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {task.dueDate && (
-                      <span
-                        className={`text-sm ${
-                          overdue ? "text-red-600" : "text-graphite"
-                        }`}
+                    {!fromAsana && (
+                      <button
+                        type="button"
+                        onClick={() => openCalendarFor(task.id, task.dueDate)}
+                        className={`text-sm px-2 py-0.5 rounded border transition-colors ${
+                          task.dueDate
+                            ? "border-[var(--color-sage)]/50 bg-[var(--color-sage-light)]/30 text-charcoal hover:bg-[var(--color-sage-light)]/50"
+                            : "border-[var(--color-border)] text-graphite hover:border-[var(--color-sage)]/50 hover:text-charcoal"
+                        } ${overdue ? "!border-red-400/50 !bg-red-50/50 !text-red-700" : ""}`}
+                        aria-label="Assign due date"
                       >
+                        {task.dueDate
+                          ? `Due ${format(new Date(task.dueDate), "MMM d, yyyy")}`
+                          : "Assign day"}
+                      </button>
+                    )}
+                    {fromAsana && task.dueDate && (
+                      <span className={`text-sm ${overdue ? "text-red-600" : "text-graphite"}`}>
                         Due {format(new Date(task.dueDate), "MMM d, yyyy")}
                       </span>
                     )}
@@ -361,16 +428,83 @@ export default function TodosPage() {
                   </div>
                 </div>
                 {!fromAsana && (
-                  <button
-                    type="button"
-                    onClick={() => deleteTask(task.id)}
-                    className="text-graphite hover:text-red-600 text-sm px-2 py-1 rounded"
-                    aria-label="Delete"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => deleteTask(task.id)}
+                      className="text-graphite hover:text-red-600 text-sm px-2 py-1 rounded"
+                      aria-label="Delete"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 )}
               </li>
+              {!fromAsana && calendarOpenForTaskId === task.id && (
+                <li key={`${task.id}-cal`} className="card-deco p-3" ref={calendarRef}>
+                  <div className="flex items-center justify-between mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMonth((m) => subMonths(m, 1))}
+                      className="text-graphite hover:text-obsidian p-1 rounded"
+                      aria-label="Previous month"
+                    >
+                      ←
+                    </button>
+                    <span className="font-medium text-obsidian text-sm">
+                      {format(calendarMonth, "MMMM yyyy")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMonth((m) => addMonths(m, 1))}
+                      className="text-graphite hover:text-obsidian p-1 rounded"
+                      aria-label="Next month"
+                    >
+                      →
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-0.5 text-center text-xs mb-2">
+                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+                      <div key={d} className="text-graphite font-medium py-0.5">
+                        {d}
+                      </div>
+                    ))}
+                    {eachDayOfInterval({
+                      start: startOfWeek(startOfMonth(calendarMonth)),
+                      end: endOfWeek(endOfMonth(calendarMonth)),
+                    }).map((day) => {
+                      const sameMonth = isSameMonth(day, calendarMonth);
+                      const selected = task.dueDate && isSameDay(day, new Date(task.dueDate));
+                      return (
+                        <button
+                          key={day.toISOString()}
+                          type="button"
+                          onClick={() => assignDueDate(task.id, day)}
+                          className={`py-1.5 rounded ${
+                            !sameMonth
+                              ? "text-[var(--color-border)]"
+                              : selected
+                                ? "bg-[var(--color-sage)] text-[var(--color-cream)]"
+                                : isToday(day)
+                                  ? "bg-[var(--color-sage-light)]/50 text-obsidian"
+                                  : "text-charcoal hover:bg-[var(--color-linen)]"
+                          }`}
+                        >
+                          {format(day, "d")}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => assignDueDate(task.id, null)}
+                    className="text-graphite hover:text-red-600 text-xs"
+                  >
+                    Clear date
+                  </button>
+                </li>
+              )}
+              </React.Fragment>
             );
           })
         )}
