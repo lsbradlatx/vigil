@@ -94,6 +94,12 @@
   border-color: var(--color-accent);
 }
 
+/* Radios and checkboxes use site accent (sage) instead of browser blue */
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: var(--color-sage);
+}
+
 /* React Big Calendar — design system theme */
 .rbc-deco .rbc-header {
   border-color: var(--color-border);
