@@ -43,3 +43,11 @@ model GoogleCalendarToken {
   refreshToken String
   updatedAt    DateTime @updatedAt
 }
+
+// Single row for app: Asana Personal Access Token (single-user app)
+model AsanaToken {
+  id            String   @id // use "default"
+  accessToken   String
+  workspaceGid  String?   // optional; if null, first workspace is used when fetching
+  updatedAt     DateTime  @updatedAt
+}

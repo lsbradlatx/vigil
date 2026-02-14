@@ -9,8 +9,9 @@ type Task = {
   title: string;
   completed: boolean;
   dueDate: string | null;
-  order: number;
-  createdAt: string;
+  order?: number;
+  createdAt?: string;
+  source?: "asana";
 };
 
 type CalendarEvent = {
@@ -29,6 +30,11 @@ export default function TodosPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [asanaConnected, setAsanaConnected] = useState(false);
+  const [asanaToken, setAsanaToken] = useState("");
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [disconnectLoading, setDisconnectLoading] = useState(false);
+  const [showConnectForm, setShowConnectForm] = useState(false);
 
   const fetchTodayEvents = useCallback(async () => {
     const dateStr = format(new Date(), "yyyy-MM-dd");
@@ -42,23 +48,47 @@ export default function TodosPage() {
     }
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchAsanaStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/asana/status");
+      if (res.ok) {
+        const data = await res.json();
+        setAsanaConnected(data.connected);
+      }
+    } catch {
+      setAsanaConnected(false);
+    }
+  }, []);
+
+  const fetchTasks = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch("/api/tasks");
-      if (!res.ok) throw new Error("Failed to load tasks");
-      const data = await res.json();
-      setTasks(data);
+      const [localRes, asanaRes] = await Promise.all([
+        fetch("/api/tasks"),
+        fetch("/api/asana/tasks"),
+      ]);
+      if (!localRes.ok) throw new Error("Failed to load tasks");
+      const localData: Task[] = await localRes.json();
+      const asanaData: Task[] = asanaRes.ok ? await asanaRes.json() : [];
+      const merged: Task[] = [
+        ...localData.map((t) => ({ ...t, source: undefined as undefined })),
+        ...asanaData.map((t) => ({ ...t, source: "asana" as const })),
+      ];
+      setTasks(merged);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAsanaStatus();
+  }, [fetchAsanaStatus]);
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [fetchTasks]);
 
   useEffect(() => {
     fetchTodayEvents();
@@ -91,22 +121,78 @@ export default function TodosPage() {
   };
 
   const toggleComplete = async (id: string, completed: boolean) => {
+    const next = !completed;
+    if (id.startsWith("asana-")) {
+      try {
+        const res = await fetch("/api/asana/complete", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId: id, completed: next }),
+        });
+        if (!res.ok) throw new Error("Update failed");
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, completed: next } : t))
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Update failed");
+      }
+      return;
+    }
     try {
       const res = await fetch(`/api/tasks/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !completed }),
+        body: JSON.stringify({ completed: next }),
       });
       if (!res.ok) throw new Error("Update failed");
       setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, completed: !completed } : t))
+        prev.map((t) => (t.id === id ? { ...t, completed: next } : t))
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
     }
   };
 
+  const connectAsana = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!asanaToken.trim() || connectLoading) return;
+    setConnectLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/asana/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: asanaToken.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to connect");
+      setAsanaConnected(true);
+      setShowConnectForm(false);
+      setAsanaToken("");
+      setLoading(true);
+      await fetchTasks();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to connect Asana");
+    } finally {
+      setConnectLoading(false);
+    }
+  };
+
+  const disconnectAsana = async () => {
+    setDisconnectLoading(true);
+    try {
+      const res = await fetch("/api/asana/disconnect", { method: "POST" });
+      if (res.ok) {
+        setAsanaConnected(false);
+        setTasks((prev) => prev.filter((t) => !t.id.startsWith("asana-")));
+      }
+    } finally {
+      setDisconnectLoading(false);
+    }
+  };
+
   const deleteTask = async (id: string) => {
+    if (id.startsWith("asana-")) return;
     try {
       const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
@@ -115,6 +201,8 @@ export default function TodosPage() {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
   };
+
+  const isAsanaTask = (task: Task) => task.id.startsWith("asana-");
 
   if (loading) {
     return (
@@ -128,7 +216,52 @@ export default function TodosPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="font-display text-3xl font-medium text-obsidian">To-dos</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-3xl font-medium text-obsidian">To-dos</h1>
+        <div className="flex items-center gap-2">
+          {asanaConnected ? (
+            <button
+              type="button"
+              onClick={disconnectAsana}
+              disabled={disconnectLoading}
+              className="btn-deco text-sm"
+            >
+              {disconnectLoading ? "Disconnecting…" : "Disconnect Asana"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowConnectForm((v) => !v)}
+              className="btn-deco-primary text-sm"
+            >
+              {showConnectForm ? "Cancel" : "Connect Asana"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {showConnectForm && !asanaConnected && (
+        <section className="card-deco">
+          <h2 className="font-display text-lg font-medium text-sage mb-2">Connect Asana</h2>
+          <p className="text-graphite text-sm mb-3">
+            Create a Personal Access Token in Asana (Settings → Apps → Developer apps → Personal access tokens), then paste it below.
+          </p>
+          <form onSubmit={connectAsana} className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="password"
+              value={asanaToken}
+              onChange={(e) => setAsanaToken(e.target.value)}
+              placeholder="Paste your Asana token"
+              className="input-deco flex-1 min-w-0"
+              disabled={connectLoading}
+              autoComplete="off"
+            />
+            <button type="submit" className="btn-deco-primary whitespace-nowrap" disabled={connectLoading || !asanaToken.trim()}>
+              {connectLoading ? "Connecting…" : "Connect"}
+            </button>
+          </form>
+        </section>
+      )}
 
       {todayEvents.length > 0 && (
         <section className="card-deco">
@@ -182,17 +315,18 @@ export default function TodosPage() {
       <ul className="space-y-2">
         {tasks.length === 0 ? (
           <li className="card-deco text-graphite text-center py-6">
-            No tasks yet. Add one above.
+            No tasks yet. Add one above{asanaConnected ? " or they will appear from Asana" : ""}.
           </li>
         ) : (
           tasks.map((task) => {
             const overdue = task.dueDate && isPast(new Date(task.dueDate)) && !task.completed;
+            const fromAsana = isAsanaTask(task);
             return (
               <li
                 key={task.id}
                 className={`card-deco flex items-center gap-3 todo-item ${
                   task.completed ? "completed" : ""
-                } ${overdue ? "border-red-400/50" : ""}`}
+                } ${overdue ? "border-red-400/50" : ""} ${fromAsana ? "border-l-4 border-l-[var(--color-slate-blue)]" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -209,24 +343,33 @@ export default function TodosPage() {
                     <span>{task.title}</span>
                     <span className="todo-strike" aria-hidden />
                   </span>
-                  {task.dueDate && (
-                    <span
-                      className={`ml-2 text-sm ${
-                        overdue ? "text-red-600" : "text-graphite"
-                      }`}
-                    >
-                      Due {format(new Date(task.dueDate), "MMM d, yyyy")}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {task.dueDate && (
+                      <span
+                        className={`text-sm ${
+                          overdue ? "text-red-600" : "text-graphite"
+                        }`}
+                      >
+                        Due {format(new Date(task.dueDate), "MMM d, yyyy")}
+                      </span>
+                    )}
+                    {fromAsana && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-slate-blue)]/20 text-charcoal">
+                        Asana
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => deleteTask(task.id)}
-                  className="text-graphite hover:text-red-600 text-sm px-2 py-1 rounded"
-                  aria-label="Delete"
-                >
-                  Delete
-                </button>
+                {!fromAsana && (
+                  <button
+                    type="button"
+                    onClick={() => deleteTask(task.id)}
+                    className="text-graphite hover:text-red-600 text-sm px-2 py-1 rounded"
+                    aria-label="Delete"
+                  >
+                    Delete
+                  </button>
+                )}
               </li>
             );
           })
