@@ -36,3 +36,10 @@ model StimulantLog {
   loggedAt DateTime
   notes    String?
 }
+
+// Single row for app: Google Calendar OAuth refresh token (single-user app)
+model GoogleCalendarToken {
+  id           String   @id // use "default" as the single row id
+  refreshToken String
+  updatedAt    DateTime @updatedAt
+}

@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
+import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth } from "date-fns";
 import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -39,6 +40,7 @@ type ApiEvent = {
   end: string;
   allDay: boolean;
   color: string | null;
+  source?: "google";
 };
 
 function toEvent(e: ApiEvent): CalendarEvent & { resource?: ApiEvent } {
@@ -48,7 +50,7 @@ function toEvent(e: ApiEvent): CalendarEvent & { resource?: ApiEvent } {
     start: new Date(e.start),
     end: new Date(e.end),
     allDay: e.allDay,
-    color: e.color,
+    color: e.source === "google" ? "var(--color-slate-blue)" : e.color,
     resource: e,
   };
 }
@@ -66,24 +68,44 @@ export default function CalendarPage() {
   const [formEnd, setFormEnd] = useState("");
   const [formAllDay, setFormAllDay] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [googleMessage, setGoogleMessage] = useState<"connected" | "error" | null>(null);
+  const searchParams = useSearchParams();
+
+  const fetchGoogleStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/calendar/google/status");
+      if (res.ok) {
+        const data = await res.json();
+        setGoogleConnected(data.connected);
+      }
+    } catch {
+      setGoogleConnected(false);
+    }
+  }, []);
 
   const fetchEvents = useCallback(async (start?: Date, end?: Date) => {
     try {
       setError(null);
+      const rangeStart = start ?? startOfMonth(viewDate);
+      const rangeEnd = end ?? endOfMonth(viewDate);
       let url = "/api/events";
-      if (start && end) {
-        url += `?start=${start.toISOString()}&end=${end.toISOString()}`;
-      }
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to load events");
-      const data: ApiEvent[] = await res.json();
-      setEvents(data.map(toEvent));
+      url += `?start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`;
+      const [localRes, googleRes] = await Promise.all([
+        fetch(url),
+        fetch(`/api/calendar/google/events?start=${rangeStart.toISOString()}&end=${rangeEnd.toISOString()}`),
+      ]);
+      if (!localRes.ok) throw new Error("Failed to load events");
+      const localData: ApiEvent[] = await localRes.json();
+      const googleData: ApiEvent[] = googleRes.ok ? await googleRes.json() : [];
+      setEvents([...localData.map(toEvent), ...googleData.map(toEvent)]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewDate]);
 
   const fetchTasksForDate = useCallback(async (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -98,6 +120,33 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
+    fetchGoogleStatus();
+  }, [fetchGoogleStatus]);
+
+  useEffect(() => {
+    const google = searchParams.get("google");
+    const err = searchParams.get("error");
+    if (google === "connected") {
+      setGoogleMessage("connected");
+      setGoogleConnected(true);
+      setLoading(true);
+      fetchEvents();
+      window.history.replaceState({}, "", "/calendar");
+    } else if (err?.startsWith("google_")) {
+      setGoogleMessage("error");
+      window.history.replaceState({}, "", "/calendar");
+    }
+  }, [searchParams, fetchEvents]);
+
+  useEffect(() => {
+    if (googleMessage) {
+      const t = setTimeout(() => setGoogleMessage(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [googleMessage]);
+
+  useEffect(() => {
+    setLoading(true);
     fetchEvents();
   }, [fetchEvents]);
 
@@ -123,9 +172,26 @@ export default function CalendarPage() {
     setShowForm(true);
   }, []);
 
+  const isGoogleEvent = (event: (CalendarEvent & { resource?: ApiEvent }) | null) =>
+    event?.id?.startsWith("google-") ?? false;
+
+  const disconnectGoogle = async () => {
+    setDisconnecting(true);
+    try {
+      const res = await fetch("/api/calendar/google/disconnect", { method: "POST" });
+      if (res.ok) {
+        setGoogleConnected(false);
+        setLoading(true);
+        await fetchEvents();
+      }
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   const saveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formTitle.trim() || !formStart || !formEnd || saving) return;
+    if (isGoogleEvent(selectedEvent) || !formTitle.trim() || !formStart || !formEnd || saving) return;
     setSaving(true);
     try {
       const payload = {
@@ -197,8 +263,36 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-medium text-obsidian">Calendar</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-3xl font-medium text-obsidian">Calendar</h1>
+        <div className="flex items-center gap-2">
+          {googleConnected ? (
+            <button
+              type="button"
+              onClick={disconnectGoogle}
+              disabled={disconnecting}
+              className="btn-deco text-sm"
+            >
+              {disconnecting ? "Disconnecting…" : "Disconnect Google Calendar"}
+            </button>
+          ) : (
+            <a href="/api/auth/google" className="btn-deco-primary text-sm">
+              Connect Google Calendar
+            </a>
+          )}
+        </div>
+      </div>
 
+      {googleMessage === "connected" && (
+        <div className="rounded-md border border-[var(--color-sage)] bg-[var(--color-sage-light)] text-obsidian px-4 py-2 text-sm">
+          Google Calendar connected. Your events will appear on the calendar.
+        </div>
+      )}
+      {googleMessage === "error" && (
+        <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
+          Could not connect Google Calendar. Please try again.
+        </div>
+      )}
       {error && (
         <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
           {error}
@@ -254,7 +348,7 @@ export default function CalendarPage() {
         <div className="fixed inset-0 bg-obsidian/40 flex items-center justify-center z-20 p-4">
           <div className="card-deco max-w-md w-full shadow-xl">
             <h2 className="font-display text-xl font-medium text-obsidian mb-4">
-              {selectedEvent ? "Edit event" : "New event"}
+              {isGoogleEvent(selectedEvent) ? "Google Calendar event" : selectedEvent ? "Edit event" : "New event"}
             </h2>
             <form onSubmit={saveEvent} className="space-y-3">
               <div>
@@ -265,6 +359,7 @@ export default function CalendarPage() {
                   onChange={(e) => setFormTitle(e.target.value)}
                   className="input-deco w-full"
                   required
+                  readOnly={isGoogleEvent(selectedEvent)}
                 />
               </div>
               <div>
@@ -274,7 +369,8 @@ export default function CalendarPage() {
                   value={formStart}
                   onChange={(e) => setFormStart(e.target.value)}
                   className="input-deco w-full"
-                  disabled={formAllDay}
+                  disabled={formAllDay || isGoogleEvent(selectedEvent)}
+                  readOnly={isGoogleEvent(selectedEvent)}
                 />
               </div>
               <div>
@@ -284,23 +380,27 @@ export default function CalendarPage() {
                   value={formEnd}
                   onChange={(e) => setFormEnd(e.target.value)}
                   className="input-deco w-full"
-                  disabled={formAllDay}
+                  disabled={formAllDay || isGoogleEvent(selectedEvent)}
+                  readOnly={isGoogleEvent(selectedEvent)}
                 />
               </div>
-              <label className="flex items-center gap-2 text-charcoal">
+              <label className={`flex items-center gap-2 text-charcoal ${isGoogleEvent(selectedEvent) ? "opacity-70" : ""}`}>
                 <input
                   type="checkbox"
                   checked={formAllDay}
                   onChange={(e) => setFormAllDay(e.target.checked)}
                   className="rounded border-sage text-sage"
+                  disabled={isGoogleEvent(selectedEvent)}
                 />
                 All day
               </label>
               <div className="flex gap-2 pt-2">
-                <button type="submit" className="btn-deco-primary" disabled={saving}>
-                  {saving ? "Saving…" : "Save"}
-                </button>
-                {selectedEvent && (
+                {!isGoogleEvent(selectedEvent) && (
+                  <button type="submit" className="btn-deco-primary" disabled={saving}>
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                )}
+                {selectedEvent && !isGoogleEvent(selectedEvent) && (
                   <button
                     type="button"
                     onClick={deleteEvent}
