@@ -3,7 +3,7 @@
  * Two modes: health (stricter) and productivity (more permissive), both within recommended limits.
  */
 
-export type SubstanceType = "CAFFEINE" | "ADDERALL" | "NICOTINE";
+export type SubstanceType = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
 
 export type OptimizationMode = "health" | "productivity";
 
@@ -90,6 +90,30 @@ export const SUBSTANCE_CONFIG: Record<SubstanceType, SubstanceConfig> = {
       maxMgPerDay: 60,
     },
   },
+  DEXEDRINE: {
+    halfLifeHours: 11,
+    peakHours: 2,
+    label: "Dexedrine",
+    limits: {
+      maxDosesPerDay: 2,
+      maxMgPerDay: 40,
+      minSpacingHours: 8,
+      minCutoffHoursBeforeSleep: 10,
+      label: "Dexedrine",
+    },
+    health: {
+      cutoffHoursBeforeSleep: 14,
+      spacingHours: 12,
+      maxDosesPerDay: 1,
+      maxMgPerDay: 20,
+    },
+    productivity: {
+      cutoffHoursBeforeSleep: 10,
+      spacingHours: 8,
+      maxDosesPerDay: 2,
+      maxMgPerDay: 40,
+    },
+  },
   NICOTINE: {
     halfLifeHours: 2,
     peakHours: 0.25,
@@ -139,6 +163,24 @@ export interface NextDoseWindow {
   maxMgPerDay?: number;
   /** Remaining mg allowed today (max - total), 0 if at limit. */
   remainingMgToday?: number;
+  /** Doses taken in last 24h for this substance (for display / over-limit styling). */
+  dosesToday?: number;
+}
+
+/** Government/absolute max limits per substance (e.g. FDA-style ceilings). Exceed = show daily dosage in red. */
+export function getGovernmentLimits(): Record<
+  SubstanceType,
+  { maxDosesPerDay: number; maxMgPerDay: number }
+> {
+  const out = {} as Record<SubstanceType, { maxDosesPerDay: number; maxMgPerDay: number }>;
+  for (const substance of ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"] as SubstanceType[]) {
+    const limits = SUBSTANCE_CONFIG[substance].limits;
+    out[substance] = {
+      maxDosesPerDay: limits.maxDosesPerDay,
+      maxMgPerDay: limits.maxMgPerDay,
+    };
+  }
+  return out;
 }
 
 /**
@@ -147,7 +189,7 @@ export interface NextDoseWindow {
 export function getCutoffTimes(
   sleepByDate: Date,
   mode: OptimizationMode,
-  substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "NICOTINE"]
+  substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"]
 ): CutoffResult[] {
   const results: CutoffResult[] = [];
   for (const substance of substances) {
@@ -184,6 +226,7 @@ export function countDosesLast24h(
   const counts: Record<SubstanceType, number> = {
     CAFFEINE: 0,
     ADDERALL: 0,
+    DEXEDRINE: 0,
     NICOTINE: 0,
   };
   for (const log of logs) {
@@ -206,6 +249,7 @@ export function sumTotalMgLast24h(
   const sums: Record<SubstanceType, number> = {
     CAFFEINE: 0,
     ADDERALL: 0,
+    DEXEDRINE: 0,
     NICOTINE: 0,
   };
   for (const log of logs) {
@@ -229,7 +273,7 @@ export function getNextDoseWindows(
   lastDoseAmountMgBySubstance?: Partial<Record<SubstanceType, number>>
 ): NextDoseWindow[] {
   const results: NextDoseWindow[] = [];
-  const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "NICOTINE"];
+  const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
 
   for (const substance of substances) {
     const config = SUBSTANCE_CONFIG[substance];
@@ -259,6 +303,7 @@ export function getNextDoseWindows(
         totalMgToday: totalMg || undefined,
         maxMgPerDay: params.maxMgPerDay,
         remainingMgToday: 0,
+        dosesToday,
       });
       continue;
     }
@@ -272,7 +317,7 @@ export function getNextDoseWindows(
     if (lastDoseMg != null && lastDoseMg > 0 && substance === "CAFFEINE" && lastDoseMg > 100) {
       const extraHours = Math.min(2, Math.floor((lastDoseMg - 100) / 100));
       minSpacing = params.spacingHours + extraHours;
-    } else if (lastDoseMg != null && lastDoseMg > 0 && substance === "ADDERALL" && lastDoseMg > 20) {
+    } else if (lastDoseMg != null && lastDoseMg > 0 && (substance === "ADDERALL" || substance === "DEXEDRINE") && lastDoseMg > 20) {
       const extraHours = lastDoseMg > 30 ? 2 : 1;
       minSpacing = params.spacingHours + extraHours;
     }
@@ -282,9 +327,9 @@ export function getNextDoseWindows(
       windowEnd = new Date(now);
       windowEnd.setHours(windowEnd.getHours() + 1);
       if (hasAmountData && params.maxMgPerDay > 0) {
-        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${params.maxMgPerDay}mg recommended in ${mode} mode.)`;
+        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${params.maxMgPerDay}mg recommended.)`;
       } else {
-        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (Max ${params.maxDosesPerDay}/day in ${mode} mode.)`;
+        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (Max ${params.maxDosesPerDay}/day recommended.)`;
       }
       results.push({
         substance,
@@ -295,6 +340,7 @@ export function getNextDoseWindows(
         totalMgToday: totalMg || undefined,
         maxMgPerDay: params.maxMgPerDay,
         remainingMgToday: remainingMg,
+        dosesToday,
       });
       continue;
     }
@@ -338,6 +384,7 @@ export function getNextDoseWindows(
       totalMgToday: totalMg || undefined,
       maxMgPerDay: params.maxMgPerDay,
       remainingMgToday: remainingMg,
+      dosesToday,
     });
   }
   return results;
@@ -367,7 +414,7 @@ export function getDoseForPeakAt(
   sleepByDate: Date
 ): DoseForPeakSuggestion[] {
   const results: DoseForPeakSuggestion[] = [];
-  const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "NICOTINE"];
+  const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
 
   for (const substance of substances) {
     const config = SUBSTANCE_CONFIG[substance];

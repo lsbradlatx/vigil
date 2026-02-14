@@ -205,10 +205,10 @@ export default function HomePage() {
             </div>
             <div className="space-y-2 text-sm">
               <p className="text-graphite">
-                Mode: <strong>{data.mode}</strong> · Sleep by {sleepBy}
+                Sleep by {sleepBy}
               </p>
               <div>
-                <span className="font-medium text-charcoal">Cutoffs:</span>
+                <span className="font-medium text-charcoal">Recommended limits:</span>
                 <ul className="mt-0.5 space-y-0.5 text-graphite">
                   {data.cutoffs.slice(0, 3).map((c) => (
                     <li key={c.substance}>{c.message}</li>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-const VALID_SUBSTANCES = ["CAFFEINE", "ADDERALL", "NICOTINE"] as const;
+const VALID_SUBSTANCES = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"] as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     };
     if (!substance || !VALID_SUBSTANCES.includes(substance as typeof VALID_SUBSTANCES[number])) {
       return NextResponse.json(
-        { error: "substance must be CAFFEINE, ADDERALL, or NICOTINE" },
+        { error: "substance must be CAFFEINE, ADDERALL, DEXEDRINE, or NICOTINE" },
         { status: 400 }
       );
     }

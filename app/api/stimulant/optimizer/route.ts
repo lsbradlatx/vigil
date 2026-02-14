@@ -6,6 +6,7 @@ import {
   getDoseForPeakAt,
   countDosesLast24h,
   sumTotalMgLast24h,
+  getGovernmentLimits,
   type SubstanceType,
   type OptimizationMode,
 } from "@/lib/stimulant-calculator";
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
       now
     );
 
-    const cutoffs = getCutoffTimes(sleepByDate, mode);
+    const cutoffs = getCutoffTimes(sleepByDate, "health");
     const nextWindows = getNextDoseWindows(
       lastDoseBySubstance,
       now,
@@ -85,6 +86,7 @@ export async function GET(request: NextRequest) {
       sleepBy: sleepByDate.toISOString(),
       mode,
       cutoffs,
+      governmentLimits: getGovernmentLimits(),
       nextDoseWindows: nextWindows,
     };
 

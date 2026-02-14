@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 
-type Substance = "CAFFEINE" | "ADDERALL" | "NICOTINE";
+type Substance = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
 
 type StimulantLog = {
   id: string;
@@ -53,11 +53,14 @@ type DoseForPeak = {
   afterCutoff?: boolean;
 };
 
+type GovernmentLimits = Record<string, { maxDosesPerDay: number; maxMgPerDay: number }>;
+
 type OptimizerResponse = {
   now: string;
   sleepBy: string;
   mode: OptimizationMode;
   cutoffs: CutoffResult[];
+  governmentLimits?: GovernmentLimits;
   nextDoseWindows: NextDoseWindow[];
   eventsToday?: CalendarEvent[];
   nextEventToday?: { id: string; title: string; start: string; end: string } | null;
@@ -67,6 +70,7 @@ type OptimizerResponse = {
 const SUBSTANCE_OPTIONS: { value: Substance; label: string }[] = [
   { value: "CAFFEINE", label: "Caffeine" },
   { value: "ADDERALL", label: "Adderall" },
+  { value: "DEXEDRINE", label: "Dexedrine" },
   { value: "NICOTINE", label: "Nicotine" },
 ];
 
@@ -181,7 +185,7 @@ export default function StimulantPage() {
       </h1>
 
       <p className="text-graphite text-sm max-w-xl">
-        For awareness only; not medical advice. Choose a mode below — both stay within recommended limits. Health: earlier cutoffs, longer spacing, fewer doses. Productivity: later cutoffs, shorter spacing, more doses (still capped).
+        For awareness only; not medical advice. Recommended limits are shown below. Your choice of health or productivity affects suggestion timing only (health: earlier cutoffs, longer spacing; productivity: later cutoffs, shorter spacing).
       </p>
 
       {error && (
@@ -292,7 +296,7 @@ export default function StimulantPage() {
             </label>
           </div>
           <p className="text-obsidian/60 text-xs mt-1">
-            Neither mode recommends doses above recommended limits.
+            Suggestions stay within recommended limits.
           </p>
         </div>
 
@@ -317,11 +321,8 @@ export default function StimulantPage() {
           <p className="text-obsidian/60">Loading…</p>
         ) : optimizer ? (
           <div className="space-y-6">
-            <p className="text-graphite text-sm">
-              Using <strong>{optimizer.mode === "health" ? "health" : "productivity"}</strong> mode.
-            </p>
             <div>
-              <h3 className="font-medium text-obsidian mb-2">Cutoff times</h3>
+              <h3 className="font-medium text-obsidian mb-2">Recommended limits</h3>
               <ul className="space-y-1 text-obsidian/80">
                 {optimizer.cutoffs.map((c) => (
                   <li key={c.substance} className="flex items-center gap-2 flex-wrap">
@@ -339,25 +340,36 @@ export default function StimulantPage() {
                 Next dose windows
               </h3>
               <ul className="space-y-2">
-                {optimizer.nextDoseWindows.map((w) => (
-                  <li
-                    key={w.substance}
-                    className={`rounded-md border p-3 text-sm ${
-                      w.atLimit
-                        ? "border-amber-500/60 bg-amber-50/50"
-                        : "border-[var(--color-border)] bg-[var(--color-surface)]"
-                    }`}
-                  >
-                    <span className="font-medium text-sage">{w.label}:</span>{" "}
-                    {w.message}
-                    {w.totalMgToday != null && w.maxMgPerDay != null && (
-                      <span className="block mt-1 text-graphite text-xs">
-                        {w.totalMgToday}mg today
-                        {w.remainingMgToday != null && w.remainingMgToday > 0 && ` · ${w.remainingMgToday}mg remaining`}
-                      </span>
-                    )}
-                  </li>
-                ))}
+                {optimizer.nextDoseWindows.map((w) => {
+                  const gov = optimizer.governmentLimits?.[w.substance];
+                  const overGovMg = gov && w.totalMgToday != null && w.totalMgToday > gov.maxMgPerDay;
+                  const overGovDoses = gov && w.dosesToday != null && w.dosesToday > gov.maxDosesPerDay;
+                  const overGovernmentLimit = overGovMg || overGovDoses;
+                  return (
+                    <li
+                      key={w.substance}
+                      className={`rounded-md border p-3 text-sm ${
+                        w.atLimit
+                          ? "border-amber-500/60 bg-amber-50/50"
+                          : "border-[var(--color-border)] bg-[var(--color-surface)]"
+                      }`}
+                    >
+                      <span className="font-medium text-sage">{w.label}:</span>{" "}
+                      {w.message}
+                      {(w.totalMgToday != null && w.maxMgPerDay != null) && (
+                        <span className={`block mt-1 text-xs ${overGovernmentLimit ? "text-red-600 font-medium" : "text-graphite"}`}>
+                          {w.totalMgToday}mg today
+                          {w.remainingMgToday != null && w.remainingMgToday > 0 && ` · ${w.remainingMgToday}mg remaining`}
+                        </span>
+                      )}
+                      {w.dosesToday != null && !(w.totalMgToday != null && w.maxMgPerDay != null) && (
+                        <span className={`block mt-1 text-xs ${overGovernmentLimit ? "text-red-600 font-medium" : "text-graphite"}`}>
+                          {w.dosesToday} doses today
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
