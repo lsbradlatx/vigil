@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -118,8 +118,9 @@ export default function StimulantPage() {
     }
   }, []);
 
+  const hasOptimizerData = useRef(false);
   const fetchOptimizer = useCallback(async () => {
-    setLoadingOptimizer(true);
+    if (!hasOptimizerData.current) setLoadingOptimizer(true);
     try {
       setError(null);
       const today = new Date().toISOString().slice(0, 10);
@@ -128,6 +129,7 @@ export default function StimulantPage() {
       if (!res.ok) throw new Error("Failed to load recommendations");
       const data = await res.json();
       setOptimizer(data);
+      hasOptimizerData.current = true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {

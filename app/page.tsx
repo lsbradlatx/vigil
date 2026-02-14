@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -76,8 +76,12 @@ export default function HomePage() {
     localStorage.setItem("stoicsips_mode", value);
   };
 
+  const isInitialLoad = useRef(true);
   const fetchDashboard = useCallback(async () => {
-    setLoading(true);
+    if (isInitialLoad.current) {
+      setLoading(true);
+      isInitialLoad.current = false;
+    }
     try {
       setError(null);
       const params = new URLSearchParams({
