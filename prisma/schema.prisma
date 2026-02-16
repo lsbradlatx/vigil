@@ -51,3 +51,13 @@ model AsanaToken {
   workspaceGid  String?   // optional; if null, first workspace is used when fetching
   updatedAt     DateTime  @updatedAt
 }
+
+// Single row for app: user health profile for personalized stimulant recommendations
+model UserHealthProfile {
+  id         String   @id // use "default"
+  weightKg   Float?
+  heightCm   Float?
+  allergies  String?  // comma-separated or JSON array
+  medications String?
+  updatedAt  DateTime @updatedAt
+}

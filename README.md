@@ -15,6 +15,10 @@ A scheduling, productivity, and focus app that helps optimize stimulant usage (c
 - **To-dos** — Task list with due dates
 - **Stimulant Optimizer** — Log doses and get suggested optimal times and cutoff times for sleep
 
+## Docs
+
+- [Health profile and future integrations](docs/HEALTH_INTEGRATION.md) — manual health profile, personalization, and placeholder for third-party health APIs.
+
 ## Tech
 
 - Next.js 14 (App Router), TypeScript, Tailwind CSS, Prisma, SQLite

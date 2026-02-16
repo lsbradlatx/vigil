@@ -71,14 +71,25 @@ export async function GET(request: NextRequest) {
       now
     );
 
-    const cutoffs = getCutoffTimes(sleepByDate, "health");
+    const healthProfileRow = await prisma.userHealthProfile.findFirst();
+    const healthProfile = healthProfileRow
+      ? {
+          weightKg: healthProfileRow.weightKg,
+          heightCm: healthProfileRow.heightCm,
+          allergies: healthProfileRow.allergies,
+          medications: healthProfileRow.medications,
+        }
+      : null;
+
+    const cutoffs = getCutoffTimes(sleepByDate, "health", undefined, healthProfile);
     const nextWindows = getNextDoseWindows(
       lastDoseBySubstance,
       now,
       mode,
       dosesToday,
       totalMgToday,
-      lastDoseAmountMgBySubstance
+      lastDoseAmountMgBySubstance,
+      healthProfile
     );
 
     const payload: Record<string, unknown> = {
@@ -88,6 +99,7 @@ export async function GET(request: NextRequest) {
       cutoffs,
       governmentLimits: getGovernmentLimits(),
       nextDoseWindows: nextWindows,
+      healthProfile: healthProfile ?? undefined,
     };
 
     if (dateParam) {
@@ -106,7 +118,7 @@ export async function GET(request: NextRequest) {
       });
       const nextEventToday = eventsToday.find((e) => new Date(e.start) > now);
       const doseForPeakAtNextEvent = nextEventToday
-        ? getDoseForPeakAt(new Date(nextEventToday.start), mode, sleepByDate)
+        ? getDoseForPeakAt(new Date(nextEventToday.start), mode, sleepByDate, healthProfile)
         : [];
       payload.eventsToday = eventsToday;
       payload.nextEventToday = nextEventToday

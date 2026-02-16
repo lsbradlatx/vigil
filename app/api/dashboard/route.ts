@@ -91,19 +91,30 @@ export async function GET(request: NextRequest) {
       now
     );
 
-    const cutoffs = getCutoffTimes(sleepByDate, "health");
+    const healthProfileRow = await prisma.userHealthProfile.findFirst();
+    const healthProfile = healthProfileRow
+      ? {
+          weightKg: healthProfileRow.weightKg,
+          heightCm: healthProfileRow.heightCm,
+          allergies: healthProfileRow.allergies,
+          medications: healthProfileRow.medications,
+        }
+      : null;
+
+    const cutoffs = getCutoffTimes(sleepByDate, "health", undefined, healthProfile);
     const nextDoseWindows = getNextDoseWindows(
       lastDoseBySubstance,
       now,
       mode,
       dosesToday,
       totalMgToday,
-      lastDoseAmountMgBySubstance
+      lastDoseAmountMgBySubstance,
+      healthProfile
     );
 
     const nextEventToday = events.find((e) => new Date(e.start) > now);
     const doseForPeak = nextEventToday
-      ? getDoseForPeakAt(new Date(nextEventToday.start), mode, sleepByDate)
+      ? getDoseForPeakAt(new Date(nextEventToday.start), mode, sleepByDate, healthProfile)
       : [];
 
     return NextResponse.json({

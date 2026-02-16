@@ -1,7 +1,17 @@
 /**
  * Time-based suggestions for stimulant use. For awareness only; not medical advice.
  * Two modes: health (stricter) and productivity (more permissive), both within recommended limits.
+ *
+ * Scientific / regulatory references for parameters:
+ * - Caffeine: FDA 400 mg/day safe for healthy adults; sensitivity varies by body weight, medications, conditions.
+ *   PK: half-life ~4–5 h, peak ~45 min–1 h (NCBI/NIH pharmacokinetic reviews).
+ * - Amphetamine (Adderall/Dexedrine): d-amphetamine half-life ~10–11 h, IR peak ~3 h (FDA label / DailyMed).
+ *   Parameters here use typical immediate-release values.
+ * - Nicotine: half-life ~1–2 h, peak within minutes (NCBI).
  */
+
+import type { HealthProfile } from "./health-profile";
+import { isSubstanceAllergic, getWeightBasedCaffeineMaxMg } from "./health-profile";
 
 export type SubstanceType = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
 
@@ -185,14 +195,17 @@ export function getGovernmentLimits(): Record<
 
 /**
  * Given a "sleep by" time and mode, returns cutoff times per substance (within recommended limits).
+ * When profile is provided and lists an allergy for a substance, that substance is skipped.
  */
 export function getCutoffTimes(
   sleepByDate: Date,
   mode: OptimizationMode,
-  substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"]
+  substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"],
+  profile?: HealthProfile | null
 ): CutoffResult[] {
   const results: CutoffResult[] = [];
   for (const substance of substances) {
+    if (profile && isSubstanceAllergic(profile, substance)) continue;
     const config = SUBSTANCE_CONFIG[substance];
     const params = config[mode];
     const cutoff = new Date(sleepByDate);
@@ -263,6 +276,7 @@ export function sumTotalMgLast24h(
 /**
  * Given last dose time, mode, dose count, and total mg today, suggests next dose window (never above recommended limits).
  * When totalMgTodayBySubstance is provided, at-limit and messages use mg; spacing can be extended for larger last doses.
+ * When profile is provided: allergies skip recommendation (show warning); weight can lower caffeine max mg/day.
  */
 export function getNextDoseWindows(
   lastDoseBySubstance: Partial<Record<SubstanceType, Date>>,
@@ -270,7 +284,8 @@ export function getNextDoseWindows(
   mode: OptimizationMode,
   dosesTodayBySubstance: Record<SubstanceType, number>,
   totalMgTodayBySubstance?: Partial<Record<SubstanceType, number>>,
-  lastDoseAmountMgBySubstance?: Partial<Record<SubstanceType, number>>
+  lastDoseAmountMgBySubstance?: Partial<Record<SubstanceType, number>>,
+  profile?: HealthProfile | null
 ): NextDoseWindow[] {
   const results: NextDoseWindow[] = [];
   const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
@@ -278,6 +293,25 @@ export function getNextDoseWindows(
   for (const substance of substances) {
     const config = SUBSTANCE_CONFIG[substance];
     const params = config[mode];
+    const weightBasedCaffeine = substance === "CAFFEINE" ? getWeightBasedCaffeineMaxMg(profile) : null;
+    const effectiveMaxMgPerDay =
+      weightBasedCaffeine != null
+        ? Math.min(params.maxMgPerDay, weightBasedCaffeine)
+        : params.maxMgPerDay;
+
+    if (profile && isSubstanceAllergic(profile, substance)) {
+      results.push({
+        substance,
+        label: config.label,
+        windowStart: now.toISOString(),
+        windowEnd: now.toISOString(),
+        message: "Not recommended: you listed an allergy. Discuss with your doctor.",
+        atLimit: true,
+        dosesToday: dosesTodayBySubstance[substance] ?? 0,
+      });
+      continue;
+    }
+
     const lastDose = lastDoseBySubstance[substance];
     const dosesToday = dosesTodayBySubstance[substance] ?? 0;
     const totalMg = totalMgTodayBySubstance?.[substance] ?? 0;
@@ -285,13 +319,13 @@ export function getNextDoseWindows(
     const hasAmountData = totalMg > 0 || totalMgTodayBySubstance != null;
 
     const atLimitByDose = dosesToday >= params.maxDosesPerDay;
-    const atLimitByMg = hasAmountData && totalMg >= params.maxMgPerDay;
+    const atLimitByMg = hasAmountData && totalMg >= effectiveMaxMgPerDay;
     const atLimit = atLimitByDose || atLimitByMg;
-    const remainingMg = Math.max(0, params.maxMgPerDay - totalMg);
+    const remainingMg = Math.max(0, effectiveMaxMgPerDay - totalMg);
 
     if (atLimit) {
       const reason = atLimitByMg
-        ? `At recommended limit (${totalMg}mg / ${params.maxMgPerDay}mg per day).`
+        ? `At recommended limit (${totalMg}mg / ${effectiveMaxMgPerDay}mg per day).`
         : `At recommended limit (${params.maxDosesPerDay} ${params.maxDosesPerDay === 1 ? "dose" : "doses"}/day).`;
       results.push({
         substance,
@@ -301,7 +335,7 @@ export function getNextDoseWindows(
         message: `${reason} Wait until tomorrow.`,
         atLimit: true,
         totalMgToday: totalMg || undefined,
-        maxMgPerDay: params.maxMgPerDay,
+        maxMgPerDay: effectiveMaxMgPerDay,
         remainingMgToday: 0,
         dosesToday,
       });
@@ -326,8 +360,8 @@ export function getNextDoseWindows(
       windowStart = new Date(now);
       windowEnd = new Date(now);
       windowEnd.setHours(windowEnd.getHours() + 1);
-      if (hasAmountData && params.maxMgPerDay > 0) {
-        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${params.maxMgPerDay}mg recommended.)`;
+      if (hasAmountData && effectiveMaxMgPerDay > 0) {
+        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${effectiveMaxMgPerDay}mg recommended.)`;
       } else {
         message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (Max ${params.maxDosesPerDay}/day recommended.)`;
       }
@@ -338,7 +372,7 @@ export function getNextDoseWindows(
         windowEnd: windowEnd.toISOString(),
         message,
         totalMgToday: totalMg || undefined,
-        maxMgPerDay: params.maxMgPerDay,
+        maxMgPerDay: effectiveMaxMgPerDay,
         remainingMgToday: remainingMg,
         dosesToday,
       });
@@ -368,8 +402,8 @@ export function getNextDoseWindows(
       windowStart = new Date(now);
       windowEnd = new Date(now);
       windowEnd.setHours(windowEnd.getHours() + 1);
-      if (hasAmountData && params.maxMgPerDay > 0) {
-        message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${params.maxMgPerDay}mg — ${remainingMg}mg remaining.)`;
+      if (hasAmountData && effectiveMaxMgPerDay > 0) {
+        message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${effectiveMaxMgPerDay}mg — ${remainingMg}mg remaining.)`;
       } else {
         message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${dosesToday + 1}/${params.maxDosesPerDay} today.)`;
       }
@@ -382,7 +416,7 @@ export function getNextDoseWindows(
       windowEnd: windowEnd.toISOString(),
       message,
       totalMgToday: totalMg || undefined,
-      maxMgPerDay: params.maxMgPerDay,
+      maxMgPerDay: effectiveMaxMgPerDay,
       remainingMgToday: remainingMg,
       dosesToday,
     });
@@ -407,16 +441,19 @@ export interface DoseForPeakSuggestion {
 /**
  * Given a target "peak at" time (e.g. event start), suggest when to take each substance for peak at that time.
  * Respects mode-specific cutoff (if takeBy would be after cutoff, we still return it but set afterCutoff).
+ * When profile lists an allergy for a substance, that substance is skipped.
  */
 export function getDoseForPeakAt(
   peakAt: Date,
   mode: OptimizationMode,
-  sleepByDate: Date
+  sleepByDate: Date,
+  profile?: HealthProfile | null
 ): DoseForPeakSuggestion[] {
   const results: DoseForPeakSuggestion[] = [];
   const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
 
   for (const substance of substances) {
+    if (profile && isSubstanceAllergic(profile, substance)) continue;
     const config = SUBSTANCE_CONFIG[substance];
     const params = config[mode];
     const takeBy = new Date(peakAt);

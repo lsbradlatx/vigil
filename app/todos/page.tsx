@@ -441,34 +441,46 @@ export default function TodosPage() {
                 )}
               </li>
               {!fromAsana && calendarOpenForTaskId === task.id && (
-                <li key={`${task.id}-cal`} className="card-deco p-3" ref={calendarRef}>
-                  <div className="flex items-center justify-between mb-2">
+                <li
+                  key={`${task.id}-cal`}
+                  className="card-deco p-2 w-[240px] max-w-[240px] box-border shrink-0"
+                  ref={calendarRef}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
                     <button
                       type="button"
                       onClick={() => setCalendarMonth((m) => subMonths(m, 1))}
-                      className="text-graphite hover:text-obsidian p-1 rounded"
+                      className="text-graphite hover:text-obsidian p-0.5 rounded text-xs leading-none"
                       aria-label="Previous month"
                     >
                       ←
                     </button>
-                    <span className="font-medium text-obsidian text-sm">
-                      {format(calendarMonth, "MMMM yyyy")}
+                    <span className="font-medium text-obsidian text-xs">
+                      {format(calendarMonth, "MMM yyyy")}
                     </span>
                     <button
                       type="button"
                       onClick={() => setCalendarMonth((m) => addMonths(m, 1))}
-                      className="text-graphite hover:text-obsidian p-1 rounded"
+                      className="text-graphite hover:text-obsidian p-0.5 rounded text-xs leading-none"
                       aria-label="Next month"
                     >
                       →
                     </button>
                   </div>
-                  <div className="grid grid-cols-7 gap-0.5 text-center text-xs mb-2">
-                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                      <div key={d} className="text-graphite font-medium py-0.5">
+                  <div
+                    className="grid gap-px text-center text-[11px] mb-1.5"
+                    style={{ gridTemplateColumns: "repeat(7, 1fr)" }}
+                  >
+                    {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                      <div key={`${d}-${i}`} className="text-graphite font-medium py-0.5">
                         {d}
                       </div>
                     ))}
+                  </div>
+                  <div
+                    className="grid gap-px text-center text-[11px]"
+                    style={{ gridTemplateColumns: "repeat(7, 1fr)" }}
+                  >
                     {eachDayOfInterval({
                       start: startOfWeek(startOfMonth(calendarMonth)),
                       end: endOfWeek(endOfMonth(calendarMonth)),
@@ -480,7 +492,7 @@ export default function TodosPage() {
                           key={day.toISOString()}
                           type="button"
                           onClick={() => assignDueDate(task.id, day)}
-                          className={`py-1.5 rounded ${
+                          className={`min-w-0 aspect-square flex items-center justify-center rounded leading-none ${
                             !sameMonth
                               ? "text-[var(--color-border)]"
                               : selected
@@ -498,7 +510,7 @@ export default function TodosPage() {
                   <button
                     type="button"
                     onClick={() => assignDueDate(task.id, null)}
-                    className="text-graphite hover:text-red-600 text-xs"
+                    className="text-graphite hover:text-red-600 text-[11px] mt-1.5 block"
                   >
                     Clear date
                   </button>

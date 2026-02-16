@@ -55,6 +55,13 @@ type DoseForPeak = {
 
 type GovernmentLimits = Record<string, { maxDosesPerDay: number; maxMgPerDay: number }>;
 
+type HealthProfileData = {
+  weightKg?: number | null;
+  heightCm?: number | null;
+  allergies?: string | null;
+  medications?: string | null;
+};
+
 type OptimizerResponse = {
   now: string;
   sleepBy: string;
@@ -62,6 +69,7 @@ type OptimizerResponse = {
   cutoffs: CutoffResult[];
   governmentLimits?: GovernmentLimits;
   nextDoseWindows: NextDoseWindow[];
+  healthProfile?: HealthProfileData;
   eventsToday?: CalendarEvent[];
   nextEventToday?: { id: string; title: string; start: string; end: string } | null;
   doseForPeakAtNextEvent?: DoseForPeak[];
@@ -92,6 +100,13 @@ export default function StimulantPage() {
   const [sleepBy, setSleepBy] = useState("22:00");
   const [mode, setMode] = useState<OptimizationMode>("health");
 
+  const [healthProfile, setHealthProfile] = useState<HealthProfileData | null>(null);
+  const [profileWeight, setProfileWeight] = useState("");
+  const [profileHeight, setProfileHeight] = useState("");
+  const [profileAllergies, setProfileAllergies] = useState("");
+  const [profileMedications, setProfileMedications] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+
   useEffect(() => {
     const savedSleep = localStorage.getItem("stoicsips_sleepBy");
     const savedMode = localStorage.getItem("stoicsips_mode");
@@ -106,6 +121,56 @@ export default function StimulantPage() {
   const handleModeChange = (value: OptimizationMode) => {
     setMode(value);
     localStorage.setItem("stoicsips_mode", value);
+  };
+
+  const fetchHealthProfile = useCallback(async () => {
+    try {
+      const res = await fetch("/api/health-profile");
+      if (res.ok) {
+        const data = await res.json();
+        setHealthProfile(data);
+        setProfileWeight(data.weightKg != null ? String(data.weightKg) : "");
+        setProfileHeight(data.heightCm != null ? String(data.heightCm) : "");
+        setProfileAllergies(data.allergies ?? "");
+        setProfileMedications(data.medications ?? "");
+      }
+    } catch {
+      setHealthProfile(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHealthProfile();
+  }, [fetchHealthProfile]);
+
+  const saveHealthProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    try {
+      const res = await fetch("/api/health-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          weightKg: profileWeight.trim() ? parseFloat(profileWeight) : null,
+          heightCm: profileHeight.trim() ? parseFloat(profileHeight) : null,
+          allergies: profileAllergies.trim() || null,
+          medications: profileMedications.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      const data = await res.json();
+      setHealthProfile(data);
+      setLoadingOptimizer(true);
+      const today = new Date().toISOString().slice(0, 10);
+      const params = new URLSearchParams({ sleepBy, mode, date: today });
+      const optRes = await fetch(`/api/stimulant/optimizer?${params}`);
+      if (optRes.ok) setOptimizer(await optRes.json());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save profile");
+    } finally {
+      setProfileSaving(false);
+      setLoadingOptimizer(false);
+    }
   };
 
   const fetchLogs = useCallback(async () => {
@@ -196,6 +261,68 @@ export default function StimulantPage() {
 
       <section className="card-deco max-w-xl">
         <h2 className="font-display text-xl font-medium text-sage mb-4">
+          Health profile
+        </h2>
+        <p className="text-graphite text-sm mb-4">
+          Optional. Used to personalize caffeine limits by weight and to show allergy warnings. For awareness only; not medical advice. Limits are not adjusted for prescription use.
+        </p>
+        <form onSubmit={saveHealthProfile} className="space-y-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-obsidian mb-1">Weight (kg)</label>
+              <input
+                type="number"
+                min={30}
+                max={300}
+                step={0.1}
+                value={profileWeight}
+                onChange={(e) => setProfileWeight(e.target.value)}
+                placeholder="e.g. 70"
+                className="input-deco w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-obsidian mb-1">Height (cm)</label>
+              <input
+                type="number"
+                min={100}
+                max={250}
+                step={1}
+                value={profileHeight}
+                onChange={(e) => setProfileHeight(e.target.value)}
+                placeholder="e.g. 170"
+                className="input-deco w-full"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-obsidian mb-1">Allergies (free text)</label>
+            <input
+              type="text"
+              value={profileAllergies}
+              onChange={(e) => setProfileAllergies(e.target.value)}
+              placeholder="e.g. caffeine, penicillin"
+              className="input-deco w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-obsidian mb-1">Medications (free text)</label>
+            <input
+              type="text"
+              value={profileMedications}
+              onChange={(e) => setProfileMedications(e.target.value)}
+              placeholder="e.g. SSRIs, blood pressure"
+              className="input-deco w-full"
+            />
+          </div>
+          <button type="submit" className="btn-deco-primary" disabled={profileSaving}>
+            {profileSaving ? "Saving…" : "Save profile"}
+          </button>
+        </form>
+      </section>
+
+      <section className="card-deco max-w-xl">
+        <h2 className="font-display text-xl font-medium text-sage mb-4">
           Log a dose
         </h2>
         <form onSubmit={submitLog} className="space-y-3">
@@ -266,6 +393,12 @@ export default function StimulantPage() {
         <h2 className="font-display text-xl font-medium text-sage mb-4">
           Recommendations
         </h2>
+
+        {optimizer?.healthProfile?.medications && (
+          <div className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 text-obsidian px-4 py-2 text-sm mb-4">
+            You listed medications; discuss stimulant use with your doctor.
+          </div>
+        )}
 
         <div className="mb-4">
           <label className="block text-sm font-medium text-obsidian mb-2">
