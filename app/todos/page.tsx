@@ -370,7 +370,7 @@ export default function TodosPage() {
       <ul className="space-y-2">
         {tasks.length === 0 ? (
           <li className="card-deco text-graphite text-center py-6">
-            No tasks yet. Add one above{asanaConnected ? " or they will appear from Asana" : ""}.
+            No tasks yet.
           </li>
         ) : (
           tasks.map((task) => {

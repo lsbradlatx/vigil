@@ -33,6 +33,7 @@ type NextDoseWindow = {
   totalMgToday?: number;
   maxMgPerDay?: number;
   remainingMgToday?: number;
+  dosesToday?: number;
 };
 
 type OptimizationMode = "health" | "productivity";
@@ -75,12 +76,33 @@ type OptimizerResponse = {
   doseForPeakAtNextEvent?: DoseForPeak[];
 };
 
+type DrinkSize = { id: string; sizeLabel: string; caffeineMg: number };
+type Drink = { id: string; name: string; brand: string | null; sizes: DrinkSize[] };
+
 const SUBSTANCE_OPTIONS: { value: Substance; label: string }[] = [
   { value: "CAFFEINE", label: "Caffeine" },
   { value: "ADDERALL", label: "Adderall" },
   { value: "DEXEDRINE", label: "Dexedrine" },
   { value: "NICOTINE", label: "Nicotine" },
 ];
+
+const LB_PER_KG = 2.205;
+const CM_PER_IN = 2.54;
+const IN_PER_FT = 12;
+
+function kgToLb(kg: number): number {
+  return Math.round(kg * LB_PER_KG * 10) / 10;
+}
+function lbToKg(lb: number): number {
+  return Math.round((lb / LB_PER_KG) * 100) / 100;
+}
+function cmToFtIn(cm: number): { ft: number; in: number } {
+  const totalIn = cm / CM_PER_IN;
+  return { ft: Math.floor(totalIn / IN_PER_FT), in: Math.round(totalIn % IN_PER_FT) };
+}
+function ftInToCm(ft: number, inch: number): number {
+  return Math.round((ft * IN_PER_FT + inch) * CM_PER_IN);
+}
 
 export default function StimulantPage() {
   const [logs, setLogs] = useState<StimulantLog[]>([]);
@@ -91,6 +113,10 @@ export default function StimulantPage() {
 
   const [formSubstance, setFormSubstance] = useState<Substance>("CAFFEINE");
   const [formAmountMg, setFormAmountMg] = useState<string>("");
+  const [formLogByDrink, setFormLogByDrink] = useState(true);
+  const [formDrinkId, setFormDrinkId] = useState("");
+  const [formDrinkSizeId, setFormDrinkSizeId] = useState("");
+  const [drinks, setDrinks] = useState<Drink[]>([]);
   const [formLoggedAt, setFormLoggedAt] = useState(() =>
     format(new Date(), "yyyy-MM-dd'T'HH:mm")
   );
@@ -101,8 +127,14 @@ export default function StimulantPage() {
   const [mode, setMode] = useState<OptimizationMode>("health");
 
   const [healthProfile, setHealthProfile] = useState<HealthProfileData | null>(null);
+  const [profileUnits, setProfileUnits] = useState<"imperial" | "metric">(() => {
+    if (typeof window === "undefined") return "imperial";
+    return localStorage.getItem("stoicsips_profileUnits") === "metric" ? "metric" : "imperial";
+  });
   const [profileWeight, setProfileWeight] = useState("");
   const [profileHeight, setProfileHeight] = useState("");
+  const [profileHeightFt, setProfileHeightFt] = useState("");
+  const [profileHeightIn, setProfileHeightIn] = useState("");
   const [profileAllergies, setProfileAllergies] = useState("");
   const [profileMedications, setProfileMedications] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
@@ -110,8 +142,10 @@ export default function StimulantPage() {
   useEffect(() => {
     const savedSleep = localStorage.getItem("stoicsips_sleepBy");
     const savedMode = localStorage.getItem("stoicsips_mode");
+    const savedUnits = localStorage.getItem("stoicsips_profileUnits");
     if (savedSleep) setSleepBy(savedSleep);
     if (savedMode === "health" || savedMode === "productivity") setMode(savedMode as OptimizationMode);
+    if (savedUnits === "imperial" || savedUnits === "metric") setProfileUnits(savedUnits);
   }, []);
 
   const handleSleepByChange = (value: string) => {
@@ -129,10 +163,27 @@ export default function StimulantPage() {
       if (res.ok) {
         const data = await res.json();
         setHealthProfile(data);
-        setProfileWeight(data.weightKg != null ? String(data.weightKg) : "");
-        setProfileHeight(data.heightCm != null ? String(data.heightCm) : "");
         setProfileAllergies(data.allergies ?? "");
         setProfileMedications(data.medications ?? "");
+        const kg = data.weightKg;
+        const cm = data.heightCm;
+        if (profileUnits === "imperial") {
+          setProfileWeight(kg != null && Number.isFinite(kg) ? String(kgToLb(kg)) : "");
+          if (cm != null && Number.isFinite(cm)) {
+            const { ft, in: inch } = cmToFtIn(cm);
+            setProfileHeightFt(String(ft));
+            setProfileHeightIn(String(inch));
+          } else {
+            setProfileHeightFt("");
+            setProfileHeightIn("");
+          }
+          setProfileHeight("");
+        } else {
+          setProfileWeight(kg != null && Number.isFinite(kg) ? String(kg) : "");
+          setProfileHeight(cm != null && Number.isFinite(cm) ? String(cm) : "");
+          setProfileHeightFt("");
+          setProfileHeightIn("");
+        }
       }
     } catch {
       setHealthProfile(null);
@@ -143,16 +194,66 @@ export default function StimulantPage() {
     fetchHealthProfile();
   }, [fetchHealthProfile]);
 
+  const getWeightKgAndHeightCm = (): { weightKg: number | null; heightCm: number | null } => {
+    if (profileUnits === "imperial") {
+      const w = profileWeight.trim() ? parseFloat(profileWeight) : NaN;
+      const ft = profileHeightFt.trim() ? parseFloat(profileHeightFt) : NaN;
+      const inch = profileHeightIn.trim() ? parseFloat(profileHeightIn) : NaN;
+      return {
+        weightKg: Number.isFinite(w) ? lbToKg(w) : null,
+        heightCm: Number.isFinite(ft) || Number.isFinite(inch) ? ftInToCm(Number.isFinite(ft) ? ft : 0, Number.isFinite(inch) ? inch : 0) : null,
+      };
+    }
+    const w = profileWeight.trim() ? parseFloat(profileWeight) : NaN;
+    const h = profileHeight.trim() ? parseFloat(profileHeight) : NaN;
+    return {
+      weightKg: Number.isFinite(w) ? w : null,
+      heightCm: Number.isFinite(h) ? h : null,
+    };
+  };
+
+  const handleProfileUnitsChange = (units: "imperial" | "metric") => {
+    if (units === profileUnits) return;
+    if (units === "metric") {
+      const w = profileWeight.trim() ? parseFloat(profileWeight) : NaN;
+      const ft = profileHeightFt.trim() ? parseFloat(profileHeightFt) : NaN;
+      const inch = profileHeightIn.trim() ? parseFloat(profileHeightIn) : NaN;
+      if (Number.isFinite(w)) setProfileWeight(String(lbToKg(w).toFixed(1)));
+      else setProfileWeight("");
+      if (Number.isFinite(ft) || Number.isFinite(inch)) setProfileHeight(String(ftInToCm(ft || 0, inch || 0)));
+      else setProfileHeight("");
+      setProfileHeightFt("");
+      setProfileHeightIn("");
+    } else {
+      const w = profileWeight.trim() ? parseFloat(profileWeight) : NaN;
+      const h = profileHeight.trim() ? parseFloat(profileHeight) : NaN;
+      if (Number.isFinite(w)) setProfileWeight(String(kgToLb(w)));
+      else setProfileWeight("");
+      if (Number.isFinite(h)) {
+        const { ft, in: inch } = cmToFtIn(h);
+        setProfileHeightFt(String(ft));
+        setProfileHeightIn(String(inch));
+      } else {
+        setProfileHeightFt("");
+        setProfileHeightIn("");
+      }
+      setProfileHeight("");
+    }
+    setProfileUnits(units);
+    localStorage.setItem("stoicsips_profileUnits", units);
+  };
+
   const saveHealthProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileSaving(true);
     try {
+      const { weightKg, heightCm } = getWeightKgAndHeightCm();
       const res = await fetch("/api/health-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          weightKg: profileWeight.trim() ? parseFloat(profileWeight) : null,
-          heightCm: profileHeight.trim() ? parseFloat(profileHeight) : null,
+          weightKg: weightKg ?? null,
+          heightCm: heightCm ?? null,
           allergies: profileAllergies.trim() || null,
           medications: profileMedications.trim() || null,
         }),
@@ -214,25 +315,44 @@ export default function StimulantPage() {
     fetchOptimizer();
   }, [fetchOptimizer]);
 
+  useEffect(() => {
+    fetch("/api/drinks")
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setDrinks)
+      .catch(() => setDrinks([]));
+  }, []);
+
+  const selectedDrink = drinks.find((d) => d.id === formDrinkId);
+  const selectedSize = selectedDrink?.sizes.find((s) => s.id === formDrinkSizeId);
+
   const submitLog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    const useDrink = formSubstance === "CAFFEINE" && formLogByDrink && formDrinkSizeId;
+    if (formSubstance === "CAFFEINE" && useDrink && !formDrinkSizeId) return;
     setSubmitting(true);
     try {
+      const body: Record<string, unknown> = {
+        substance: formSubstance,
+        loggedAt: new Date(formLoggedAt).toISOString(),
+        notes: formNotes.trim() || null,
+      };
+      if (useDrink) {
+        body.drinkSizeId = formDrinkSizeId;
+      } else {
+        body.amountMg = formAmountMg.trim() ? parseFloat(formAmountMg) : null;
+      }
       const res = await fetch("/api/stimulant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          substance: formSubstance,
-          amountMg: formAmountMg.trim() ? parseFloat(formAmountMg) : null,
-          loggedAt: new Date(formLoggedAt).toISOString(),
-          notes: formNotes.trim() || null,
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to log");
       const created = await res.json();
       setLogs((prev) => [created, ...prev]);
       setFormAmountMg("");
+      setFormDrinkId("");
+      setFormDrinkSizeId("");
       setFormNotes("");
       setFormLoggedAt(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
       fetchOptimizer();
@@ -250,7 +370,7 @@ export default function StimulantPage() {
       </h1>
 
       <p className="text-graphite text-sm max-w-xl">
-        For awareness only; not medical advice. Recommended limits are shown below. Your choice of health or productivity affects suggestion timing only (health: earlier cutoffs, longer spacing; productivity: later cutoffs, shorter spacing).
+        For awareness only; not medical advice.
       </p>
 
       {error && (
@@ -263,40 +383,108 @@ export default function StimulantPage() {
         <h2 className="font-display text-xl font-medium text-sage mb-4">
           Health profile
         </h2>
-        <p className="text-graphite text-sm mb-4">
-          Optional. Used to personalize caffeine limits by weight and to show allergy warnings. For awareness only; not medical advice. Limits are not adjusted for prescription use.
-        </p>
         <form onSubmit={saveHealthProfile} className="space-y-3">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-obsidian mb-1">Weight (kg)</label>
-              <input
-                type="number"
-                min={30}
-                max={300}
-                step={0.1}
-                value={profileWeight}
-                onChange={(e) => setProfileWeight(e.target.value)}
-                placeholder="e.g. 70"
-                className="input-deco w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-obsidian mb-1">Height (cm)</label>
-              <input
-                type="number"
-                min={100}
-                max={250}
-                step={1}
-                value={profileHeight}
-                onChange={(e) => setProfileHeight(e.target.value)}
-                placeholder="e.g. 170"
-                className="input-deco w-full"
-              />
+          <div>
+            <label className="block text-sm font-medium text-obsidian mb-2">Units</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="profileUnits"
+                  checked={profileUnits === "imperial"}
+                  onChange={() => handleProfileUnitsChange("imperial")}
+                  className="text-sage"
+                />
+                <span className="text-sm text-obsidian">Imperial (ft, in, lb)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="profileUnits"
+                  checked={profileUnits === "metric"}
+                  onChange={() => handleProfileUnitsChange("metric")}
+                  className="text-sage"
+                />
+                <span className="text-sm text-obsidian">Metric (cm, kg)</span>
+              </label>
             </div>
           </div>
+          {profileUnits === "imperial" ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-obsidian mb-1">Weight (lb)</label>
+                <input
+                  type="number"
+                  min={66}
+                  max={661}
+                  step={0.5}
+                  value={profileWeight}
+                  onChange={(e) => setProfileWeight(e.target.value)}
+                  placeholder="e.g. 154"
+                  className="input-deco w-full"
+                />
+              </div>
+              <div className="col-span-2 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-obsidian mb-1">Height (ft)</label>
+                  <input
+                    type="number"
+                    min={3}
+                    max={8}
+                    step={1}
+                    value={profileHeightFt}
+                    onChange={(e) => setProfileHeightFt(e.target.value)}
+                    placeholder="5"
+                    className="input-deco w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-obsidian mb-1">Height (in)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={11}
+                    step={1}
+                    value={profileHeightIn}
+                    onChange={(e) => setProfileHeightIn(e.target.value)}
+                    placeholder="10"
+                    className="input-deco w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-obsidian mb-1">Weight (kg)</label>
+                <input
+                  type="number"
+                  min={30}
+                  max={300}
+                  step={0.1}
+                  value={profileWeight}
+                  onChange={(e) => setProfileWeight(e.target.value)}
+                  placeholder="e.g. 70"
+                  className="input-deco w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-obsidian mb-1">Height (cm)</label>
+                <input
+                  type="number"
+                  min={100}
+                  max={250}
+                  step={1}
+                  value={profileHeight}
+                  onChange={(e) => setProfileHeight(e.target.value)}
+                  placeholder="e.g. 170"
+                  className="input-deco w-full"
+                />
+              </div>
+            </div>
+          )}
           <div>
-            <label className="block text-sm font-medium text-obsidian mb-1">Allergies (free text)</label>
+            <label className="block text-sm font-medium text-obsidian mb-1">Allergies</label>
             <input
               type="text"
               value={profileAllergies}
@@ -306,7 +494,7 @@ export default function StimulantPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-obsidian mb-1">Medications (free text)</label>
+            <label className="block text-sm font-medium text-obsidian mb-1">Medications</label>
             <input
               type="text"
               value={profileMedications}
@@ -332,7 +520,14 @@ export default function StimulantPage() {
             </label>
             <select
               value={formSubstance}
-              onChange={(e) => setFormSubstance(e.target.value as Substance)}
+              onChange={(e) => {
+                const v = e.target.value as Substance;
+                setFormSubstance(v);
+                if (v !== "CAFFEINE") {
+                  setFormDrinkId("");
+                  setFormDrinkSizeId("");
+                }
+              }}
               className="input-deco w-full"
             >
               {SUBSTANCE_OPTIONS.map((opt) => (
@@ -342,21 +537,105 @@ export default function StimulantPage() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-obsidian mb-1">
-              Amount (mg)
-            </label>
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={formAmountMg}
-              onChange={(e) => setFormAmountMg(e.target.value)}
-              placeholder="e.g. 100"
-              className="input-deco w-full"
-            />
-            <p className="text-graphite text-xs mt-0.5">Used to recommend next dose by total mg per day.</p>
-          </div>
+          {formSubstance === "CAFFEINE" ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-obsidian mb-2">Log by</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="logBy"
+                      checked={formLogByDrink}
+                      onChange={() => setFormLogByDrink(true)}
+                      className="text-sage"
+                    />
+                    <span className="text-sm text-obsidian">Drink</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="logBy"
+                      checked={!formLogByDrink}
+                      onChange={() => setFormLogByDrink(false)}
+                      className="text-sage"
+                    />
+                    <span className="text-sm text-obsidian">Amount (mg)</span>
+                  </label>
+                </div>
+              </div>
+              {formLogByDrink ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-obsidian mb-1">Drink</label>
+                    <select
+                      value={formDrinkId}
+                      onChange={(e) => {
+                        setFormDrinkId(e.target.value);
+                        setFormDrinkSizeId("");
+                      }}
+                      className="input-deco w-full"
+                    >
+                      <option value="">Select drink</option>
+                      {drinks.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.brand ? `${d.brand} ${d.name}` : d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedDrink && (
+                    <div>
+                      <label className="block text-sm font-medium text-obsidian mb-1">Size</label>
+                      <select
+                        value={formDrinkSizeId}
+                        onChange={(e) => setFormDrinkSizeId(e.target.value)}
+                        className="input-deco w-full"
+                      >
+                        <option value="">Select size</option>
+                        {selectedDrink.sizes.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.sizeLabel} — {s.caffeineMg} mg
+                          </option>
+                        ))}
+                      </select>
+                      {selectedSize && (
+                        <p className="text-graphite text-xs mt-0.5">
+                          ~{selectedSize.caffeineMg} mg caffeine
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-obsidian mb-1">Amount (mg)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={formAmountMg}
+                    onChange={(e) => setFormAmountMg(e.target.value)}
+                    placeholder="e.g. 100"
+                    className="input-deco w-full"
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-obsidian mb-1">Amount (mg)</label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={formAmountMg}
+                onChange={(e) => setFormAmountMg(e.target.value)}
+                placeholder="e.g. 100"
+                className="input-deco w-full"
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-obsidian mb-1">
               When
@@ -370,7 +649,7 @@ export default function StimulantPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-obsidian mb-1">
-              Notes (optional)
+              Notes
             </label>
             <input
               type="text"
@@ -390,22 +669,20 @@ export default function StimulantPage() {
       </section>
 
       <section className="card-deco max-w-xl">
-        <h2 className="font-display text-xl font-medium text-sage mb-4">
+        <h2 className="font-display text-xl font-medium text-sage mb-3">
           Recommendations
         </h2>
 
         {optimizer?.healthProfile?.medications && (
-          <div className="rounded-md border border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 text-obsidian px-4 py-2 text-sm mb-4">
-            You listed medications; discuss stimulant use with your doctor.
-          </div>
+          <p className="text-amber-700 dark:text-amber-400 text-xs mb-3">
+            Discuss with your doctor.
+          </p>
         )}
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-obsidian mb-2">
-            Recommended dose mode
-          </label>
-          <div className="flex gap-4 flex-wrap">
-            <label className="flex items-center gap-2 cursor-pointer">
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <div className="flex items-center gap-3">
+            <span className="text-graphite text-sm">Mode</span>
+            <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
                 name="mode"
@@ -414,9 +691,9 @@ export default function StimulantPage() {
                 onChange={() => handleModeChange("health")}
                 className="text-sage focus:ring-sage"
               />
-              <span className="text-obsidian">Prioritize health</span>
+              <span className="text-sm text-obsidian">Health</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
                 name="mode"
@@ -425,54 +702,48 @@ export default function StimulantPage() {
                 onChange={() => handleModeChange("productivity")}
                 className="text-sage focus:ring-sage"
               />
-              <span className="text-obsidian">Prioritize productivity</span>
+              <span className="text-sm text-obsidian">Productivity</span>
             </label>
           </div>
-          <p className="text-obsidian/60 text-xs mt-1">
-            Suggestions stay within recommended limits.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <label className="text-obsidian">Sleep by:</label>
-          <input
-            type="time"
-            value={sleepBy}
-            onChange={(e) => handleSleepByChange(e.target.value)}
-            className="input-deco"
-          />
+          <span className="text-graphite/60">·</span>
+          <div className="flex items-center gap-2">
+            <span className="text-graphite text-sm">Sleep by</span>
+            <input
+              type="time"
+              value={sleepBy}
+              onChange={(e) => handleSleepByChange(e.target.value)}
+              className="input-deco text-sm w-24"
+            />
+          </div>
           <button
             type="button"
             onClick={fetchOptimizer}
-            className="btn-deco text-sm"
+            className="text-sm text-sage hover:underline disabled:opacity-50"
             disabled={loadingOptimizer}
           >
-            {loadingOptimizer ? "Loading…" : "Refresh"}
+            {loadingOptimizer ? "…" : "Refresh"}
           </button>
         </div>
+
         {loadingOptimizer && !optimizer ? (
-          <p className="text-obsidian/60">Loading…</p>
+          <p className="text-graphite text-sm">Loading…</p>
         ) : optimizer ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div>
-              <h3 className="font-medium text-obsidian mb-2">Recommended limits</h3>
-              <ul className="space-y-1 text-obsidian/80">
+              <p className="text-graphite text-xs uppercase tracking-wide mb-1.5">Limits</p>
+              <ul className="space-y-0.5 text-sm text-obsidian/90">
                 {optimizer.cutoffs.map((c) => (
-                  <li key={c.substance} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sage font-medium">{c.label}:</span>
-                    {c.message}
-                    <span className="text-obsidian/60 text-xs">
-                      (max {c.maxDosesPerDay}/day)
-                    </span>
+                  <li key={c.substance} className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                    <span className="text-sage font-medium">{c.label}</span>
+                    <span>{c.message}</span>
+                    <span className="text-graphite text-xs">max {c.maxDosesPerDay}/day</span>
                   </li>
                 ))}
               </ul>
             </div>
             <div>
-              <h3 className="font-medium text-obsidian mb-2">
-                Next dose windows
-              </h3>
-              <ul className="space-y-2">
+              <p className="text-graphite text-xs uppercase tracking-wide mb-1.5">Next dose</p>
+              <ul className="space-y-1.5">
                 {optimizer.nextDoseWindows.map((w) => {
                   const gov = optimizer.governmentLimits?.[w.substance];
                   const overGovMg = gov && w.totalMgToday != null && w.totalMgToday > gov.maxMgPerDay;
@@ -481,22 +752,22 @@ export default function StimulantPage() {
                   return (
                     <li
                       key={w.substance}
-                      className={`rounded-md border p-3 text-sm ${
+                      className={`text-sm py-2 px-2.5 rounded -mx-2.5 ${
                         w.atLimit
-                          ? "border-amber-500/60 bg-amber-50/50"
-                          : "border-[var(--color-border)] bg-[var(--color-surface)]"
+                          ? "bg-amber-50/60 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200"
+                          : "bg-[var(--color-surface)]/50 text-obsidian/90"
                       }`}
                     >
-                      <span className="font-medium text-sage">{w.label}:</span>{" "}
+                      <span className="font-medium text-sage">{w.label}</span>{" "}
                       {w.message}
                       {(w.totalMgToday != null && w.maxMgPerDay != null) && (
-                        <span className={`block mt-1 text-xs ${overGovernmentLimit ? "text-red-600 font-medium" : "text-graphite"}`}>
-                          {w.totalMgToday}mg today
-                          {w.remainingMgToday != null && w.remainingMgToday > 0 && ` · ${w.remainingMgToday}mg remaining`}
+                        <span className={`block mt-0.5 text-xs ${overGovernmentLimit ? "text-red-600 dark:text-red-400 font-medium" : "text-graphite"}`}>
+                          {w.totalMgToday} mg today
+                          {w.remainingMgToday != null && w.remainingMgToday > 0 && ` · ${w.remainingMgToday} mg left`}
                         </span>
                       )}
                       {w.dosesToday != null && !(w.totalMgToday != null && w.maxMgPerDay != null) && (
-                        <span className={`block mt-1 text-xs ${overGovernmentLimit ? "text-red-600 font-medium" : "text-graphite"}`}>
+                        <span className={`block mt-0.5 text-xs ${overGovernmentLimit ? "text-red-600 dark:text-red-400 font-medium" : "text-graphite"}`}>
                           {w.dosesToday} doses today
                         </span>
                       )}
@@ -527,7 +798,7 @@ export default function StimulantPage() {
           </ul>
           {optimizer.nextEventToday && optimizer.doseForPeakAtNextEvent && optimizer.doseForPeakAtNextEvent.length > 0 && (
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-linen)] p-3">
-              <h3 className="font-medium text-obsidian mb-1">For your next event: {optimizer.nextEventToday.title}</h3>
+              <h3 className="font-medium text-obsidian mb-1">{optimizer.nextEventToday.title}</h3>
               <p className="text-graphite text-xs mb-2">
                 {format(new Date(optimizer.nextEventToday.start), "h:mm a")} – {format(new Date(optimizer.nextEventToday.end), "h:mm a")}
               </p>
@@ -550,7 +821,7 @@ export default function StimulantPage() {
         {loadingLogs ? (
           <p className="text-obsidian/60">Loading…</p>
         ) : logs.length === 0 ? (
-          <p className="text-obsidian/60">No logs yet. Log a dose above.</p>
+          <p className="text-obsidian/60">No logs yet.</p>
         ) : (
           <ul className="space-y-2">
             {logs.map((log) => (

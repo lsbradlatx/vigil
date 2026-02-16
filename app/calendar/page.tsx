@@ -285,12 +285,12 @@ export default function CalendarPage() {
 
       {googleMessage === "connected" && (
         <div className="rounded-md border border-[var(--color-sage)] bg-[var(--color-sage-light)] text-obsidian px-4 py-2 text-sm">
-          Google Calendar connected. Your events will appear on the calendar.
+          Google Calendar connected.
         </div>
       )}
       {googleMessage === "error" && (
         <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
-          Could not connect Google Calendar. Please try again.
+          Could not connect. Try again.
         </div>
       )}
       {error && (

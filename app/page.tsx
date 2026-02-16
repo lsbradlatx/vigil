@@ -208,7 +208,7 @@ export default function HomePage() {
                 Sleep by {sleepBy}
               </p>
               <div>
-                <span className="font-medium text-charcoal">Recommended limits:</span>
+                <span className="font-medium text-charcoal">Limits:</span>
                 <ul className="mt-0.5 space-y-0.5 text-graphite">
                   {data.cutoffs.slice(0, 3).map((c) => (
                     <li key={c.substance}>{c.message}</li>
@@ -236,7 +236,7 @@ export default function HomePage() {
           {data.nextEventToday && data.doseForPeakAtNextEvent.length > 0 && (
             <section className="card-deco md:col-span-2 lg:col-span-3 border-sage/40">
               <h2 className="font-display text-lg font-medium text-sage mb-2">
-                For your next event: {data.nextEventToday.title}
+                {data.nextEventToday.title}
               </h2>
               <p className="text-graphite text-sm mb-2">
                 {format(new Date(data.nextEventToday.start), "h:mm a")} –{" "}

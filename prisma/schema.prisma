@@ -61,3 +61,19 @@ model UserHealthProfile {
   medications String?
   updatedAt  DateTime @updatedAt
 }
+
+// Caffeine drink database for auto-computing dose when logging
+model Drink {
+  id     String      @id @default(cuid())
+  name   String      // e.g. "Caffe Latte"
+  brand  String?     // e.g. "Starbucks"
+  sizes  DrinkSize[]
+}
+
+model DrinkSize {
+  id         String @id @default(cuid())
+  drinkId    String
+  drink      Drink  @relation(fields: [drinkId], references: [id], onDelete: Cascade)
+  sizeLabel  String // e.g. "Grande"
+  caffeineMg Int    // caffeine in mg
+}

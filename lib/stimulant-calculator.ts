@@ -324,15 +324,12 @@ export function getNextDoseWindows(
     const remainingMg = Math.max(0, effectiveMaxMgPerDay - totalMg);
 
     if (atLimit) {
-      const reason = atLimitByMg
-        ? `At recommended limit (${totalMg}mg / ${effectiveMaxMgPerDay}mg per day).`
-        : `At recommended limit (${params.maxDosesPerDay} ${params.maxDosesPerDay === 1 ? "dose" : "doses"}/day).`;
       results.push({
         substance,
         label: config.label,
         windowStart: now.toISOString(),
         windowEnd: now.toISOString(),
-        message: `${reason} Wait until tomorrow.`,
+        message: "At recommended limit. Wait until tomorrow.",
         atLimit: true,
         totalMgToday: totalMg || undefined,
         maxMgPerDay: effectiveMaxMgPerDay,
@@ -360,11 +357,7 @@ export function getNextDoseWindows(
       windowStart = new Date(now);
       windowEnd = new Date(now);
       windowEnd.setHours(windowEnd.getHours() + 1);
-      if (hasAmountData && effectiveMaxMgPerDay > 0) {
-        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${effectiveMaxMgPerDay}mg recommended.)`;
-      } else {
-        message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h. (Max ${params.maxDosesPerDay}/day recommended.)`;
-      }
+      message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h.`;
       results.push({
         substance,
         label: config.label,
@@ -395,18 +388,11 @@ export function getNextDoseWindows(
         ? ` (${minSpacing}h after last dose of ${lastDoseMg}mg)`
         : ` (${minSpacing}h after last dose)`;
       message = `Next ${config.label.toLowerCase()} suggested after ${formatTime(windowStart)}${spacingNote}.`;
-      if (hasAmountData && remainingMg > 0) {
-        message += ` Up to ${remainingMg}mg more today.`;
-      }
     } else {
       windowStart = new Date(now);
       windowEnd = new Date(now);
       windowEnd.setHours(windowEnd.getHours() + 1);
-      if (hasAmountData && effectiveMaxMgPerDay > 0) {
-        message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${totalMg}mg today; up to ${effectiveMaxMgPerDay}mg — ${remainingMg}mg remaining.)`;
-      } else {
-        message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h. (${dosesToday + 1}/${params.maxDosesPerDay} today.)`;
-      }
+      message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h.`;
     }
 
     results.push({

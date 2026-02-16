@@ -34,10 +34,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { substance, amount, amountMg, loggedAt, notes } = body as {
+    const { substance, amount, amountMg, drinkSizeId, loggedAt, notes } = body as {
       substance: string;
       amount?: string | null;
       amountMg?: number | null;
+      drinkSizeId?: string | null;
       loggedAt?: string;
       notes?: string | null;
     };
@@ -47,11 +48,29 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    let finalAmount: string | null = amount?.trim() ?? null;
+    let finalAmountMg: number | null = amountMg != null && Number.isFinite(amountMg) ? amountMg : null;
+
+    if (substance === "CAFFEINE" && drinkSizeId) {
+      const drinkSize = await prisma.drinkSize.findUnique({
+        where: { id: drinkSizeId },
+        include: { drink: true },
+      });
+      if (drinkSize) {
+        finalAmountMg = drinkSize.caffeineMg;
+        const drink = drinkSize.drink;
+        finalAmount = drink.brand
+          ? `${drinkSize.sizeLabel} ${drink.brand} ${drink.name}`
+          : `${drinkSize.sizeLabel} ${drink.name}`;
+      }
+    }
+
     const log = await prisma.stimulantLog.create({
       data: {
         substance,
-        amount: amount?.trim() ?? null,
-        amountMg: amountMg != null && Number.isFinite(amountMg) ? amountMg : null,
+        amount: finalAmount,
+        amountMg: finalAmountMg,
         loggedAt: loggedAt ? new Date(loggedAt) : new Date(),
         notes: notes?.trim() ?? null,
       },
