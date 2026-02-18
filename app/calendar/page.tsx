@@ -2,11 +2,22 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { Calendar as BigCalendar, dateFnsLocalizer } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth } from "date-fns";
-import { enUS } from "date-fns/locale";
-import "react-big-calendar/lib/css/react-big-calendar.css";
+import { getCachedRouteData } from "@/lib/route-prefetch";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+
+const CalendarGrid = dynamic(
+  () => import("@/components/CalendarGrid").then((mod) => mod.CalendarGrid),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rbc-calendar rbc-deco flex items-center justify-center min-h-[500px] text-graphite">
+        Loading calendar…
+      </div>
+    ),
+  }
+);
 
 type Task = {
   id: string;
@@ -15,15 +26,6 @@ type Task = {
   dueDate: string | null;
 };
 
-const locales = { "en-US": enUS };
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
-
 type CalendarEvent = {
   id: string;
   title: string;
@@ -31,6 +33,7 @@ type CalendarEvent = {
   end: Date;
   allDay?: boolean;
   color?: string | null;
+  resource?: ApiEvent;
 };
 
 type ApiEvent = {
@@ -43,7 +46,7 @@ type ApiEvent = {
   source?: "google";
 };
 
-function toEvent(e: ApiEvent): CalendarEvent & { resource?: ApiEvent } {
+function toEvent(e: ApiEvent): CalendarEvent {
   return {
     id: e.id,
     title: e.title,
@@ -142,7 +145,19 @@ export default function CalendarPage() {
   }, [googleMessage]);
 
   useEffect(() => {
-    setLoading(true);
+    const cached = getCachedRouteData("/calendar") as {
+      googleConnected?: boolean;
+      localEvents?: ApiEvent[];
+      googleEvents?: ApiEvent[];
+    } | null;
+    const hadCache = cached && Array.isArray(cached.localEvents) && Array.isArray(cached.googleEvents);
+    if (hadCache && cached) {
+      setGoogleConnected(!!cached.googleConnected);
+      setEvents([...(cached.localEvents ?? []).map(toEvent), ...(cached.googleEvents ?? []).map(toEvent)]);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     Promise.all([fetchGoogleStatus(), fetchEvents()]).finally(() => setLoading(false));
   }, [fetchGoogleStatus, fetchEvents]);
 
@@ -249,14 +264,6 @@ export default function CalendarPage() {
     setSelectedEvent(null);
   };
 
-  if (loading) {
-    return (
-      <div className="card-deco max-w-4xl mx-auto text-center py-12 text-graphite">
-        Loading calendar…
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -296,20 +303,19 @@ export default function CalendarPage() {
       )}
 
       <div className="card-deco overflow-hidden">
-        <div className="rbc-calendar rbc-deco">
-          <BigCalendar
-            localizer={localizer}
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[500px] text-graphite">
+            Loading events…
+          </div>
+        ) : (
+          <CalendarGrid
             events={events}
-            startAccessor="start"
-            endAccessor="end"
-            style={{ minHeight: 500 }}
+            viewDate={viewDate}
+            onNavigate={setViewDate}
             onSelectSlot={handleSelectSlot}
             onSelectEvent={handleSelectEvent}
-            onNavigate={(date) => setViewDate(date)}
-            date={viewDate}
-            selectable
           />
-        </div>
+        )}
       </div>
 
       <section className="card-deco">

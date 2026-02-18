@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { getCachedRouteData } from "@/lib/route-prefetch";
 import {
   format,
   isPast,
@@ -110,6 +111,18 @@ export default function TodosPage() {
   }, []);
 
   useEffect(() => {
+    const cached = getCachedRouteData("/todos") as {
+      asanaConnected?: boolean;
+      tasks?: Task[];
+      todayEvents?: CalendarEvent[];
+    } | null;
+    const hadCache = cached && Array.isArray(cached.tasks) && Array.isArray(cached.todayEvents);
+    if (hadCache && cached) {
+      setAsanaConnected(!!cached.asanaConnected);
+      setTasks(cached.tasks ?? []);
+      setTodayEvents(cached.todayEvents ?? []);
+      setLoading(false);
+    }
     Promise.all([
       fetchAsanaStatus(),
       fetchTasks(),
@@ -254,15 +267,6 @@ export default function TodosPage() {
   };
 
   const isAsanaTask = (task: Task) => task.id.startsWith("asana-");
-
-  if (loading) {
-    return (
-      <div className="card-deco max-w-2xl mx-auto text-center py-8 text-graphite">
-        Loading tasks…
-      </div>
-    );
-  }
-
   const tasksDueToday = tasks.filter((t) => t.dueDate && format(new Date(t.dueDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") && !t.completed);
 
   return (
@@ -364,7 +368,11 @@ export default function TodosPage() {
       </form>
 
       <ul className="space-y-2">
-        {tasks.length === 0 ? (
+        {loading ? (
+          <li className="card-deco text-graphite text-center py-6">
+            Loading tasks…
+          </li>
+        ) : tasks.length === 0 ? (
           <li className="card-deco text-graphite text-center py-6">
             No tasks yet.
           </li>

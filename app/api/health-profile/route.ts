@@ -10,19 +10,23 @@ export async function GET() {
   try {
     const row = await prisma.userHealthProfile.findFirst();
     if (!row) {
-      return NextResponse.json({
+      const res = NextResponse.json({
         weightKg: null,
         heightCm: null,
         allergies: null,
         medications: null,
       });
+      res.headers.set("Cache-Control", "private, max-age=60");
+      return res;
     }
-    return NextResponse.json({
+    const res = NextResponse.json({
       weightKg: row.weightKg,
       heightCm: row.heightCm,
       allergies: row.allergies,
       medications: row.medications,
     });
+    res.headers.set("Cache-Control", "private, max-age=60");
+    return res;
   } catch (e) {
     console.error(e);
     return NextResponse.json(

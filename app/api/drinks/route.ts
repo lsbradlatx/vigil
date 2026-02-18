@@ -11,7 +11,9 @@ export async function GET() {
         },
       },
     });
-    return NextResponse.json(drinks);
+    const res = NextResponse.json(drinks);
+    res.headers.set("Cache-Control", "private, max-age=300");
+    return res;
   } catch (e) {
     console.error(e);
     return NextResponse.json(

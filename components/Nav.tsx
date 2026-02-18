@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { prefetchRouteData } from "@/lib/route-prefetch";
 
 const links = [
   { href: "/", label: "Home" },
@@ -12,6 +13,10 @@ const links = [
 
 export function Nav() {
   const pathname = usePathname();
+
+  const handlePrefetch = (href: string) => {
+    prefetchRouteData(href);
+  };
 
   return (
     <nav className="flex flex-wrap items-center gap-1">
@@ -26,6 +31,9 @@ export function Nav() {
                 ? "!text-sage font-semibold bg-sage-light/40"
                 : ""
             }`}
+            onMouseEnter={() => handlePrefetch(href)}
+            onFocus={() => handlePrefetch(href)}
+            onTouchStart={() => handlePrefetch(href)}
           >
             {label}
           </Link>

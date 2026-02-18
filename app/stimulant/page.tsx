@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { getCachedRouteData, setCachedRouteData } from "@/lib/route-prefetch";
 
 type Substance = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
 
@@ -320,37 +321,58 @@ export default function StimulantPage() {
   }, [sleepBy, mode]);
 
   useEffect(() => {
+    const cached = getCachedRouteData("/stimulant") as { healthProfile: HealthProfileData | null; logs: StimulantLog[]; optimizer: OptimizerResponse | null } | null;
+    const hadCache = cached && Array.isArray(cached.logs) && cached.optimizer != null;
+    if (hadCache && cached) {
+      if (cached.healthProfile) applyHealthProfileData(cached.healthProfile, profileUnits);
+      else setHealthProfile(null);
+      setLogs(cached.logs);
+      setOptimizer(cached.optimizer);
+      hasOptimizerData.current = true;
+      setLoadingLogs(false);
+      setLoadingOptimizer(false);
+    } else {
+      setLoadingLogs(true);
+      if (!hasOptimizerData.current) setLoadingOptimizer(true);
+    }
     const today = new Date().toISOString().slice(0, 10);
     const params = new URLSearchParams({ sleepBy, mode, date: today });
     const optimizerUrl = `/api/stimulant/optimizer?${params}`;
-    setLoadingLogs(true);
-    if (!hasOptimizerData.current) setLoadingOptimizer(true);
     Promise.all([
       fetch("/api/health-profile")
         .then((res) => (res.ok ? res.json() : null))
         .then((data: HealthProfileData | null) => {
           if (data) applyHealthProfileData(data, profileUnits);
           else setHealthProfile(null);
+          return data;
         })
-        .catch(() => setHealthProfile(null)),
+        .catch(() => { setHealthProfile(null); return null; }),
       fetch(getLogsUrl())
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load logs");
           return res.json();
         })
-        .then(setLogs)
-        .catch(() => setLoadingLogs(false)),
+        .then((data: StimulantLog[]) => {
+          setLogs(data);
+          return data;
+        })
+        .catch(() => { setLoadingLogs(false); return []; }),
       fetch(optimizerUrl)
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load recommendations");
           return res.json();
         })
-        .then((data) => {
+        .then((data: OptimizerResponse) => {
           setOptimizer(data);
           hasOptimizerData.current = true;
+          return data;
         })
-        .catch(() => setLoadingOptimizer(false)),
-    ]).finally(() => {
+        .catch(() => { setLoadingOptimizer(false); return null; }),
+    ]).then(([healthProfile, logs, optimizer]) => {
+      if (optimizer != null && Array.isArray(logs)) {
+        setCachedRouteData("/stimulant", { healthProfile: healthProfile ?? null, logs, optimizer });
+      }
+    }).finally(() => {
       setLoadingLogs(false);
       setLoadingOptimizer(false);
     });

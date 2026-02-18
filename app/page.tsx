@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { getCachedRouteData, setCachedRouteData } from "@/lib/route-prefetch";
 
 type CalendarEvent = {
   id: string;
@@ -92,6 +93,7 @@ export default function HomePage() {
       if (!res.ok) throw new Error("Failed to load dashboard");
       const json = await res.json();
       setData(json);
+      setCachedRouteData("/", json);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -100,6 +102,12 @@ export default function HomePage() {
   }, [sleepBy, mode]);
 
   useEffect(() => {
+    const cached = getCachedRouteData("/") as DashboardData | null;
+    if (cached && Array.isArray(cached.events) && Array.isArray(cached.tasks)) {
+      setData(cached);
+      setLoading(false);
+      isInitialLoad.current = false;
+    }
     fetchDashboard();
   }, [fetchDashboard]);
 
