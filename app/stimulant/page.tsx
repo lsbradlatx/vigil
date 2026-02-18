@@ -280,10 +280,16 @@ export default function StimulantPage() {
     }
   };
 
+  const getLogsUrl = useCallback(() => {
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    return `/api/stimulant?start=${twoDaysAgo.toISOString()}&limit=200`;
+  }, []);
+
   const fetchLogs = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch("/api/stimulant?limit=30");
+      const res = await fetch(getLogsUrl());
       if (!res.ok) throw new Error("Failed to load logs");
       const data = await res.json();
       setLogs(data);
@@ -292,7 +298,7 @@ export default function StimulantPage() {
     } finally {
       setLoadingLogs(false);
     }
-  }, []);
+  }, [getLogsUrl]);
 
   const hasOptimizerData = useRef(false);
   const fetchOptimizer = useCallback(async () => {
@@ -327,7 +333,7 @@ export default function StimulantPage() {
           else setHealthProfile(null);
         })
         .catch(() => setHealthProfile(null)),
-      fetch("/api/stimulant?limit=30")
+      fetch(getLogsUrl())
         .then((res) => {
           if (!res.ok) throw new Error("Failed to load logs");
           return res.json();
@@ -348,7 +354,7 @@ export default function StimulantPage() {
       setLoadingLogs(false);
       setLoadingOptimizer(false);
     });
-  }, [sleepBy, mode, profileUnits, applyHealthProfileData]);
+  }, [sleepBy, mode, profileUnits, applyHealthProfileData, getLogsUrl]);
 
   useEffect(() => {
     if (formSubstance === "CAFFEINE" && formLogByDrink && drinks.length === 0) {
