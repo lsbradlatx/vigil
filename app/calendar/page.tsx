@@ -120,10 +120,6 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
-    fetchGoogleStatus();
-  }, [fetchGoogleStatus]);
-
-  useEffect(() => {
     const google = searchParams.get("google");
     const err = searchParams.get("error");
     if (google === "connected") {
@@ -147,8 +143,8 @@ export default function CalendarPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetchEvents();
-  }, [fetchEvents]);
+    Promise.all([fetchGoogleStatus(), fetchEvents()]).finally(() => setLoading(false));
+  }, [fetchGoogleStatus, fetchEvents]);
 
   useEffect(() => {
     fetchTasksForDate(viewDate);

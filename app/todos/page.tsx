@@ -110,16 +110,12 @@ export default function TodosPage() {
   }, []);
 
   useEffect(() => {
-    fetchAsanaStatus();
-  }, [fetchAsanaStatus]);
-
-  useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
-
-  useEffect(() => {
-    fetchTodayEvents();
-  }, [fetchTodayEvents]);
+    Promise.all([
+      fetchAsanaStatus(),
+      fetchTasks(),
+      fetchTodayEvents(),
+    ]).finally(() => setLoading(false));
+  }, [fetchAsanaStatus, fetchTasks, fetchTodayEvents]);
 
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();

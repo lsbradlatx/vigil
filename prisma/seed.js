@@ -96,13 +96,80 @@ const drinks = [
     sizes: [
       { sizeLabel: "8.4 oz can", caffeineMg: 80 },
       { sizeLabel: "12 oz can", caffeineMg: 114 },
+      { sizeLabel: "24 oz", caffeineMg: 228 },
     ],
   },
   {
     name: "Energy drink",
     brand: "Monster",
     sizes: [
+      { sizeLabel: "12 oz", caffeineMg: 120 },
       { sizeLabel: "16 oz", caffeineMg: 160 },
+      { sizeLabel: "24 oz", caffeineMg: 240 },
+    ],
+  },
+  {
+    name: "Coca-Cola",
+    brand: "Coca-Cola",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 34 },
+      { sizeLabel: "24 oz", caffeineMg: 68 },
+    ],
+  },
+  {
+    name: "Diet Coke",
+    brand: "Coca-Cola",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 46 },
+      { sizeLabel: "24 oz", caffeineMg: 92 },
+    ],
+  },
+  {
+    name: "Pepsi",
+    brand: "Pepsi",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 38 },
+      { sizeLabel: "24 oz", caffeineMg: 76 },
+    ],
+  },
+  {
+    name: "Diet Pepsi",
+    brand: "Pepsi",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 36 },
+      { sizeLabel: "24 oz", caffeineMg: 72 },
+    ],
+  },
+  {
+    name: "Dr Pepper",
+    brand: "Dr Pepper",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 41 },
+      { sizeLabel: "24 oz", caffeineMg: 82 },
+    ],
+  },
+  {
+    name: "Mountain Dew",
+    brand: "Pepsi",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 54 },
+      { sizeLabel: "24 oz", caffeineMg: 108 },
+    ],
+  },
+  {
+    name: "Sprite",
+    brand: "Coca-Cola",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 0 },
+      { sizeLabel: "24 oz", caffeineMg: 0 },
+    ],
+  },
+  {
+    name: "Root beer",
+    brand: "Barq's",
+    sizes: [
+      { sizeLabel: "12 oz can", caffeineMg: 22 },
+      { sizeLabel: "24 oz", caffeineMg: 44 },
     ],
   },
 ];

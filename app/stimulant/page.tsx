@@ -157,42 +157,48 @@ export default function StimulantPage() {
     localStorage.setItem("stoicsips_mode", value);
   };
 
+  const applyHealthProfileData = useCallback((data: HealthProfileData | null, units: "imperial" | "metric") => {
+    if (!data) {
+      setHealthProfile(null);
+      return;
+    }
+    setHealthProfile(data);
+    setProfileAllergies(data.allergies ?? "");
+    setProfileMedications(data.medications ?? "");
+    const kg = data.weightKg;
+    const cm = data.heightCm;
+    if (units === "imperial") {
+      setProfileWeight(kg != null && Number.isFinite(kg) ? String(kgToLb(kg)) : "");
+      if (cm != null && Number.isFinite(cm)) {
+        const { ft, in: inch } = cmToFtIn(cm);
+        setProfileHeightFt(String(ft));
+        setProfileHeightIn(String(inch));
+      } else {
+        setProfileHeightFt("");
+        setProfileHeightIn("");
+      }
+      setProfileHeight("");
+    } else {
+      setProfileWeight(kg != null && Number.isFinite(kg) ? String(kg) : "");
+      setProfileHeight(cm != null && Number.isFinite(cm) ? String(cm) : "");
+      setProfileHeightFt("");
+      setProfileHeightIn("");
+    }
+  }, []);
+
   const fetchHealthProfile = useCallback(async () => {
     try {
       const res = await fetch("/api/health-profile");
       if (res.ok) {
         const data = await res.json();
-        setHealthProfile(data);
-        setProfileAllergies(data.allergies ?? "");
-        setProfileMedications(data.medications ?? "");
-        const kg = data.weightKg;
-        const cm = data.heightCm;
-        if (profileUnits === "imperial") {
-          setProfileWeight(kg != null && Number.isFinite(kg) ? String(kgToLb(kg)) : "");
-          if (cm != null && Number.isFinite(cm)) {
-            const { ft, in: inch } = cmToFtIn(cm);
-            setProfileHeightFt(String(ft));
-            setProfileHeightIn(String(inch));
-          } else {
-            setProfileHeightFt("");
-            setProfileHeightIn("");
-          }
-          setProfileHeight("");
-        } else {
-          setProfileWeight(kg != null && Number.isFinite(kg) ? String(kg) : "");
-          setProfileHeight(cm != null && Number.isFinite(cm) ? String(cm) : "");
-          setProfileHeightFt("");
-          setProfileHeightIn("");
-        }
+        applyHealthProfileData(data, profileUnits);
+      } else {
+        setHealthProfile(null);
       }
     } catch {
       setHealthProfile(null);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchHealthProfile();
-  }, [fetchHealthProfile]);
+  }, [applyHealthProfileData, profileUnits]);
 
   const getWeightKgAndHeightCm = (): { weightKg: number | null; heightCm: number | null } => {
     if (profileUnits === "imperial") {
@@ -308,19 +314,50 @@ export default function StimulantPage() {
   }, [sleepBy, mode]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    const today = new Date().toISOString().slice(0, 10);
+    const params = new URLSearchParams({ sleepBy, mode, date: today });
+    const optimizerUrl = `/api/stimulant/optimizer?${params}`;
+    setLoadingLogs(true);
+    if (!hasOptimizerData.current) setLoadingOptimizer(true);
+    Promise.all([
+      fetch("/api/health-profile")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: HealthProfileData | null) => {
+          if (data) applyHealthProfileData(data, profileUnits);
+          else setHealthProfile(null);
+        })
+        .catch(() => setHealthProfile(null)),
+      fetch("/api/stimulant?limit=30")
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to load logs");
+          return res.json();
+        })
+        .then(setLogs)
+        .catch(() => setLoadingLogs(false)),
+      fetch(optimizerUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to load recommendations");
+          return res.json();
+        })
+        .then((data) => {
+          setOptimizer(data);
+          hasOptimizerData.current = true;
+        })
+        .catch(() => setLoadingOptimizer(false)),
+    ]).finally(() => {
+      setLoadingLogs(false);
+      setLoadingOptimizer(false);
+    });
+  }, [sleepBy, mode, profileUnits, applyHealthProfileData]);
 
   useEffect(() => {
-    fetchOptimizer();
-  }, [fetchOptimizer]);
-
-  useEffect(() => {
-    fetch("/api/drinks")
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setDrinks)
-      .catch(() => setDrinks([]));
-  }, []);
+    if (formSubstance === "CAFFEINE" && formLogByDrink && drinks.length === 0) {
+      fetch("/api/drinks")
+        .then((res) => (res.ok ? res.json() : []))
+        .then(setDrinks)
+        .catch(() => setDrinks([]));
+    }
+  }, [formSubstance, formLogByDrink, drinks.length]);
 
   const selectedDrink = drinks.find((d) => d.id === formDrinkId);
   const selectedSize = selectedDrink?.sizes.find((s) => s.id === formDrinkSizeId);
@@ -762,13 +799,17 @@ export default function StimulantPage() {
                       {w.message}
                       {(w.totalMgToday != null && w.maxMgPerDay != null) && (
                         <span className={`block mt-0.5 text-xs ${overGovernmentLimit ? "text-red-600 dark:text-red-400 font-medium" : "text-graphite"}`}>
-                          {w.totalMgToday} mg today
-                          {w.remainingMgToday != null && w.remainingMgToday > 0 && ` · ${w.remainingMgToday} mg left`}
+                          {overGovernmentLimit ? "Well you're fucking dead. Congrats." : (
+                            <>
+                              {w.totalMgToday} mg today
+                              {w.remainingMgToday != null && w.remainingMgToday > 0 && ` · ${w.remainingMgToday} mg left`}
+                            </>
+                          )}
                         </span>
                       )}
                       {w.dosesToday != null && !(w.totalMgToday != null && w.maxMgPerDay != null) && (
                         <span className={`block mt-0.5 text-xs ${overGovernmentLimit ? "text-red-600 dark:text-red-400 font-medium" : "text-graphite"}`}>
-                          {w.dosesToday} doses today
+                          {overGovernmentLimit ? "Well you're fucking dead. Congrats." : `${w.dosesToday} doses today`}
                         </span>
                       )}
                     </li>

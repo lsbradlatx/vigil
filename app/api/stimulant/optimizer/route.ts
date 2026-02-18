@@ -46,10 +46,14 @@ export async function GET(request: NextRequest) {
 
     const dayAgo = new Date(now);
     dayAgo.setDate(dayAgo.getDate() - 1);
-    const recentLogs = await prisma.stimulantLog.findMany({
-      where: { loggedAt: { gte: dayAgo } },
-      orderBy: { loggedAt: "desc" },
-    });
+
+    const [recentLogs, healthProfileRow] = await Promise.all([
+      prisma.stimulantLog.findMany({
+        where: { loggedAt: { gte: dayAgo } },
+        orderBy: { loggedAt: "desc" },
+      }),
+      prisma.userHealthProfile.findFirst(),
+    ]);
 
     const lastDoseBySubstance: Partial<Record<SubstanceType, Date>> = {};
     const lastDoseAmountMgBySubstance: Partial<Record<SubstanceType, number>> = {};
@@ -71,7 +75,6 @@ export async function GET(request: NextRequest) {
       now
     );
 
-    const healthProfileRow = await prisma.userHealthProfile.findFirst();
     const healthProfile = healthProfileRow
       ? {
           weightKg: healthProfileRow.weightKg,
