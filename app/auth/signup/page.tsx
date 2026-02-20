@@ -66,7 +66,7 @@ export default function SignupPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="card-deco p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="card-deco p-8 space-y-5 hover:transform-none">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-charcoal mb-1.5">
               Username
