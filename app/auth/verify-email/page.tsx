@@ -12,11 +12,14 @@ function VerifyEmailContent() {
   const [resent, setResent] = useState(false);
   const [error, setError] = useState("");
 
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+
   async function handleResend() {
     if (!email) return;
     setResending(true);
     setError("");
     setResent(false);
+    setResendMessage(null);
 
     try {
       const res = await fetch("/api/auth/resend-verification", {
@@ -25,11 +28,16 @@ function VerifyEmailContent() {
         body: JSON.stringify({ email }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
         setError(data.error ?? data.detail ?? "Failed to resend.");
-      } else {
+      } else if (data.sent) {
         setResent(true);
+        setResendMessage(data.message ?? "Verification email resent.");
+      } else {
+        setResendMessage(data.message ?? null);
+        if (data.alreadyVerified) setResent(false);
       }
     } catch {
       setError("Something went wrong.");
@@ -80,7 +88,12 @@ function VerifyEmailContent() {
 
           {resent && (
             <div className="mb-4 p-3 rounded-lg bg-sage/10 border border-sage/20 text-sage text-sm">
-              Verification email resent.
+              {resendMessage ?? "Verification email resent. Check your inbox and spam folder."}
+            </div>
+          )}
+          {resendMessage && !resent && (
+            <div className="mb-4 p-3 rounded-lg bg-charcoal/5 border border-charcoal/20 text-charcoal text-sm">
+              {resendMessage}
             </div>
           )}
 

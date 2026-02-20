@@ -18,8 +18,11 @@ export async function POST(request: NextRequest) {
       where: { email: trimmedEmail },
     });
 
-    if (!user || user.emailVerified) {
-      return NextResponse.json({ message: "If that email exists and is unverified, a new link has been sent." });
+    if (!user) {
+      return NextResponse.json({ sent: false, message: "If that email exists and is unverified, a new link has been sent." });
+    }
+    if (user.emailVerified) {
+      return NextResponse.json({ sent: false, message: "This email is already verified. You can sign in.", alreadyVerified: true });
     }
 
     await prisma.verificationToken.deleteMany({
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ message: "If that email exists and is unverified, a new link has been sent." });
+    return NextResponse.json({ sent: true, message: "A new verification link has been sent. Check your inbox and spam folder." });
   } catch (e) {
     console.error("Resend verification error:", e);
     return NextResponse.json(
