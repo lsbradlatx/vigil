@@ -20,10 +20,7 @@ export async function GET(request: NextRequest) {
     const events = await getCalendarEvents(tokenRow.refreshToken, startParam, endParam);
     return NextResponse.json(events);
   } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { error: "Failed to fetch Google Calendar events" },
-      { status: 500 }
-    );
+    console.error("Google Calendar events error:", e);
+    return NextResponse.json([]);
   }
 }

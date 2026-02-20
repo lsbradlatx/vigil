@@ -138,9 +138,20 @@ export async function GET(request: NextRequest) {
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json(
-      { error: "Dashboard failed" },
-      { status: 500 }
-    );
+    const err = e as Error & { code?: string };
+    const isDbError =
+      err.code === "P1001" ||
+      err.code === "P1002" ||
+      err.code === "P1017" ||
+      (typeof err.message === "string" &&
+        (err.message.includes("Can't reach database") ||
+          err.message.includes("Connection") ||
+          err.message.includes("connect ECONNREFUSED")));
+    const body: { error: string; code?: string; detail?: string } = {
+      error: "Dashboard failed",
+    };
+    if (isDbError) body.code = "DATABASE_UNAVAILABLE";
+    if (process.env.NODE_ENV === "development") body.detail = err.message;
+    return NextResponse.json(body, { status: 500 });
   }
 }

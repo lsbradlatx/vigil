@@ -11,10 +11,7 @@ export async function GET() {
     const tasks = await getTasks(row.accessToken, workspaceGid);
     return NextResponse.json(tasks);
   } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to fetch Asana tasks" },
-      { status: 500 }
-    );
+    console.error("Asana tasks error:", e);
+    return NextResponse.json([]);
   }
 }

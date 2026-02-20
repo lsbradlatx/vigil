@@ -90,7 +90,14 @@ export default function HomePage() {
         mode,
       });
       const res = await fetch(`/api/dashboard?${params}`);
-      if (!res.ok) throw new Error("Failed to load dashboard");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string; code?: string; detail?: string };
+        if (body?.code === "DATABASE_UNAVAILABLE") {
+          throw new Error("Database unavailable — check DATABASE_URL and that the database is running.");
+        }
+        if (body?.detail) throw new Error(body.detail);
+        throw new Error(body?.error ?? "Failed to load dashboard");
+      }
       const json = await res.json();
       setData(json);
       setCachedRouteData("/", json);
