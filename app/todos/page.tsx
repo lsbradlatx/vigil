@@ -51,7 +51,7 @@ export default function TodosPage() {
   const [showConnectForm, setShowConnectForm] = useState(false);
   const [calendarOpenForTaskId, setCalendarOpenForTaskId] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
-  const calendarRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
     if (!calendarOpenForTaskId) return;
