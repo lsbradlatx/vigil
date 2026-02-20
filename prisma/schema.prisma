@@ -1,4 +1,4 @@
-// Prisma schema for StoicSips - SQLite (single user, no auth)
+// Prisma schema for Vigil - SQLite (single user, no auth)
 
 generator client {
   provider = "prisma-client-js"

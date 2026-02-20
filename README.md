@@ -1,4 +1,4 @@
-# StoicSips
+# Vigil
 
 A scheduling, productivity, and focus app that helps optimize stimulant usage (caffeine, Adderall, nicotine) with a cozy Art Deco aesthetic.
 

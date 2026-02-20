@@ -7,6 +7,8 @@ import { useSearchParams } from "next/navigation";
 import { getCachedRouteData } from "@/lib/route-prefetch";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
+import type { CalendarGridEvent } from "@/components/CalendarGrid";
+
 const CalendarGrid = dynamic(
   () => import("@/components/CalendarGrid").then((mod) => mod.CalendarGrid),
   {
@@ -174,8 +176,8 @@ export default function CalendarPage() {
     setShowForm(true);
   }, []);
 
-  const handleSelectEvent = useCallback((event: CalendarEvent & { resource?: ApiEvent }) => {
-    setSelectedEvent(event);
+  const handleSelectEvent = useCallback((event: CalendarGridEvent) => {
+    setSelectedEvent(event as CalendarEvent & { resource?: ApiEvent });
     setFormTitle(event.title);
     setFormStart(format(event.start, "yyyy-MM-dd'T'HH:mm"));
     setFormEnd(format(event.end, "yyyy-MM-dd'T'HH:mm"));

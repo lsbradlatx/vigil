@@ -130,7 +130,7 @@ export default function StimulantPage() {
   const [healthProfile, setHealthProfile] = useState<HealthProfileData | null>(null);
   const [profileUnits, setProfileUnits] = useState<"imperial" | "metric">(() => {
     if (typeof window === "undefined") return "imperial";
-    return localStorage.getItem("stoicsips_profileUnits") === "metric" ? "metric" : "imperial";
+    return localStorage.getItem("vigil_profileUnits") === "metric" ? "metric" : "imperial";
   });
   const [profileWeight, setProfileWeight] = useState("");
   const [profileHeight, setProfileHeight] = useState("");
@@ -141,9 +141,9 @@ export default function StimulantPage() {
   const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
-    const savedSleep = localStorage.getItem("stoicsips_sleepBy");
-    const savedMode = localStorage.getItem("stoicsips_mode");
-    const savedUnits = localStorage.getItem("stoicsips_profileUnits");
+    const savedSleep = localStorage.getItem("vigil_sleepBy");
+    const savedMode = localStorage.getItem("vigil_mode");
+    const savedUnits = localStorage.getItem("vigil_profileUnits");
     if (savedSleep) setSleepBy(savedSleep);
     if (savedMode === "health" || savedMode === "productivity") setMode(savedMode as OptimizationMode);
     if (savedUnits === "imperial" || savedUnits === "metric") setProfileUnits(savedUnits);
@@ -151,11 +151,11 @@ export default function StimulantPage() {
 
   const handleSleepByChange = (value: string) => {
     setSleepBy(value);
-    localStorage.setItem("stoicsips_sleepBy", value);
+    localStorage.setItem("vigil_sleepBy", value);
   };
   const handleModeChange = (value: OptimizationMode) => {
     setMode(value);
-    localStorage.setItem("stoicsips_mode", value);
+    localStorage.setItem("vigil_mode", value);
   };
 
   const applyHealthProfileData = useCallback((data: HealthProfileData | null, units: "imperial" | "metric") => {
@@ -247,7 +247,7 @@ export default function StimulantPage() {
       setProfileHeight("");
     }
     setProfileUnits(units);
-    localStorage.setItem("stoicsips_profileUnits", units);
+    localStorage.setItem("vigil_profileUnits", units);
   };
 
   const saveHealthProfile = async (e: React.FormEvent) => {

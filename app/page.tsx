@@ -62,19 +62,19 @@ export default function HomePage() {
   const [mode, setMode] = useState<"health" | "productivity">("health");
 
   useEffect(() => {
-    const savedSleep = localStorage.getItem("stoicsips_sleepBy");
-    const savedMode = localStorage.getItem("stoicsips_mode");
+    const savedSleep = localStorage.getItem("vigil_sleepBy");
+    const savedMode = localStorage.getItem("vigil_mode");
     if (savedSleep) setSleepBy(savedSleep);
     if (savedMode === "health" || savedMode === "productivity") setMode(savedMode);
   }, []);
 
   const handleSleepByChange = (value: string) => {
     setSleepBy(value);
-    localStorage.setItem("stoicsips_sleepBy", value);
+    localStorage.setItem("vigil_sleepBy", value);
   };
   const handleModeChange = (value: "health" | "productivity") => {
     setMode(value);
-    localStorage.setItem("stoicsips_mode", value);
+    localStorage.setItem("vigil_mode", value);
   };
 
   const isInitialLoad = useRef(true);
@@ -115,7 +115,7 @@ export default function HomePage() {
     <div className="space-y-8">
       <section className="text-center py-4">
         <h1 className="font-display text-4xl md:text-5xl font-medium text-obsidian tracking-tight mb-2">
-          StoicSips
+          Vigil
         </h1>
         <p className="text-charcoal text-lg max-w-xl mx-auto">
           Your day, tasks, and stimulant timing in one place.

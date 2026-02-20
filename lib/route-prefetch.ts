@@ -27,8 +27,8 @@ export function prefetchRouteData(href: string): void {
   if (typeof window === "undefined") return;
   const path = href.split("?")[0];
   if (path === "/") {
-    const sleepBy = localStorage.getItem("stoicsips_sleepBy") ?? "22:00";
-    const mode = localStorage.getItem("stoicsips_mode") ?? "health";
+    const sleepBy = localStorage.getItem("vigil_sleepBy") ?? "22:00";
+    const mode = localStorage.getItem("vigil_mode") ?? "health";
     const params = new URLSearchParams({ sleepBy, mode });
     fetch(`/api/dashboard?${params}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -37,8 +37,8 @@ export function prefetchRouteData(href: string): void {
     return;
   }
   if (path === "/stimulant") {
-    const sleepBy = localStorage.getItem("stoicsips_sleepBy") ?? "22:00";
-    const mode = localStorage.getItem("stoicsips_mode") ?? "health";
+    const sleepBy = localStorage.getItem("vigil_sleepBy") ?? "22:00";
+    const mode = localStorage.getItem("vigil_mode") ?? "health";
     const today = new Date().toISOString().slice(0, 10);
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
