@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/health — readiness check (database connectivity).
  * Returns 200 { ok: true } if DB is reachable, 503 { ok: false, error: "database" } otherwise.
