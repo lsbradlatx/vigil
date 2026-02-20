@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
     const sleepBy = searchParams.get("sleepBy");
     const nowParam = searchParams.get("now");
     const modeParam = searchParams.get("mode");
-    const dateParam = searchParams.get("date"); // YYYY-MM-DD — include today's events and dose-for-next-event
+    const dayStartParam = searchParams.get("dayStart");
+    const dayEndParam = searchParams.get("dayEnd");
 
     const mode: OptimizationMode =
       modeParam && VALID_MODES.includes(modeParam as OptimizationMode)
@@ -28,20 +29,23 @@ export async function GET(request: NextRequest) {
 
     const now = nowParam ? new Date(nowParam) : new Date();
 
-    let sleepByDate: Date;
-    if (sleepBy) {
-      if (sleepBy.includes("T") || sleepBy.includes("-")) {
-        sleepByDate = new Date(sleepBy);
-      } else {
-        const [hours, minutes] = sleepBy.split(":").map(Number);
-        sleepByDate = new Date(now);
-        sleepByDate.setHours(hours ?? 22, minutes ?? 0, 0, 0);
-        if (sleepByDate <= now) sleepByDate.setDate(sleepByDate.getDate() + 1);
-      }
+    let dayStart: Date;
+    let dayEnd: Date;
+    if (dayStartParam && dayEndParam) {
+      dayStart = new Date(dayStartParam);
+      dayEnd = new Date(dayEndParam);
     } else {
-      sleepByDate = new Date(now);
-      sleepByDate.setHours(22, 0, 0, 0);
-      if (sleepByDate <= now) sleepByDate.setDate(sleepByDate.getDate() + 1);
+      dayStart = new Date(now);
+      dayStart.setHours(0, 0, 0, 0);
+      dayEnd = new Date(now);
+      dayEnd.setHours(23, 59, 59, 999);
+    }
+
+    let sleepByDate: Date;
+    const [sleepH, sleepM] = (sleepBy ?? "22:00").split(":").map(Number);
+    sleepByDate = new Date(dayStart.getTime() + ((sleepH ?? 22) * 60 + (sleepM ?? 0)) * 60000);
+    if (sleepByDate <= now) {
+      sleepByDate = new Date(sleepByDate.getTime() + 24 * 60 * 60000);
     }
 
     const dayAgo = new Date(now);
@@ -105,30 +109,24 @@ export async function GET(request: NextRequest) {
       healthProfile: healthProfile ?? undefined,
     };
 
-    if (dateParam) {
-      const dayStart = new Date(dateParam);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(dateParam);
-      dayEnd.setHours(23, 59, 59, 999);
-      const eventsToday = await prisma.calendarEvent.findMany({
-        where: {
-          AND: [
-            { start: { lte: dayEnd } },
-            { end: { gte: dayStart } },
-          ],
-        },
-        orderBy: { start: "asc" },
-      });
-      const nextEventToday = eventsToday.find((e) => new Date(e.start) > now);
-      const doseForPeakAtNextEvent = nextEventToday
-        ? getDoseForPeakAt(new Date(nextEventToday.start), mode, sleepByDate, healthProfile)
-        : [];
-      payload.eventsToday = eventsToday;
-      payload.nextEventToday = nextEventToday
-        ? { id: nextEventToday.id, title: nextEventToday.title, start: nextEventToday.start, end: nextEventToday.end }
-        : null;
-      payload.doseForPeakAtNextEvent = doseForPeakAtNextEvent;
-    }
+    const eventsToday = await prisma.calendarEvent.findMany({
+      where: {
+        AND: [
+          { start: { lte: dayEnd } },
+          { end: { gte: dayStart } },
+        ],
+      },
+      orderBy: { start: "asc" },
+    });
+    const nextEventToday = eventsToday.find((e) => new Date(e.start) > now);
+    const doseForPeakAtNextEvent = nextEventToday
+      ? getDoseForPeakAt(new Date(nextEventToday.start), mode, sleepByDate, healthProfile)
+      : [];
+    payload.eventsToday = eventsToday;
+    payload.nextEventToday = nextEventToday
+      ? { id: nextEventToday.id, title: nextEventToday.title, start: nextEventToday.start, end: nextEventToday.end }
+      : null;
+    payload.doseForPeakAtNextEvent = doseForPeakAtNextEvent;
 
     return NextResponse.json(payload);
   } catch (e) {

@@ -131,22 +131,15 @@ export default function CalendarPage() {
       setGoogleMessage("connected");
       setGoogleConnected(true);
       setLoading(true);
-      fetchEvents();
+      Promise.all([fetchGoogleStatus(), fetchEvents()]).finally(() => setLoading(false));
       window.history.replaceState({}, "", "/calendar");
-    } else if (err?.startsWith("google_")) {
+      return;
+    }
+    if (err?.startsWith("google_")) {
       setGoogleMessage("error");
       window.history.replaceState({}, "", "/calendar");
+      return;
     }
-  }, [searchParams, fetchEvents]);
-
-  useEffect(() => {
-    if (googleMessage) {
-      const t = setTimeout(() => setGoogleMessage(null), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [googleMessage]);
-
-  useEffect(() => {
     const cached = getCachedRouteData("/calendar") as {
       googleConnected?: boolean;
       localEvents?: ApiEvent[];
@@ -161,7 +154,14 @@ export default function CalendarPage() {
       setLoading(true);
     }
     Promise.all([fetchGoogleStatus(), fetchEvents()]).finally(() => setLoading(false));
-  }, [fetchGoogleStatus, fetchEvents]);
+  }, [searchParams, fetchGoogleStatus, fetchEvents]);
+
+  useEffect(() => {
+    if (googleMessage) {
+      const t = setTimeout(() => setGoogleMessage(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [googleMessage]);
 
   useEffect(() => {
     fetchTasksForDate(viewDate);

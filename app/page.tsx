@@ -85,9 +85,16 @@ export default function HomePage() {
     }
     try {
       setError(null);
+      const now = new Date();
+      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const params = new URLSearchParams({
         sleepBy,
         mode,
+        localDate,
+        dayStart: dayStart.toISOString(),
+        dayEnd: dayEnd.toISOString(),
       });
       const res = await fetch(`/api/dashboard?${params}`);
       if (!res.ok) {

@@ -21,22 +21,31 @@ const VALID_MODES: OptimizationMode[] = ["health", "productivity"];
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const dateParam = searchParams.get("date");
     const sleepByParam = searchParams.get("sleepBy");
     const modeParam = searchParams.get("mode");
+    const dayStartParam = searchParams.get("dayStart");
+    const dayEndParam = searchParams.get("dayEnd");
+    const localDateParam = searchParams.get("localDate");
 
-    const today = dateParam ? new Date(dateParam) : new Date();
     const mode: OptimizationMode =
       modeParam && VALID_MODES.includes(modeParam as OptimizationMode)
         ? (modeParam as OptimizationMode)
         : "health";
 
-    const dayStart = new Date(today);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(today);
-    dayEnd.setHours(23, 59, 59, 999);
+    let dayStart: Date;
+    let dayEnd: Date;
+    if (dayStartParam && dayEndParam) {
+      dayStart = new Date(dayStartParam);
+      dayEnd = new Date(dayEndParam);
+    } else {
+      const today = new Date();
+      dayStart = new Date(today);
+      dayStart.setHours(0, 0, 0, 0);
+      dayEnd = new Date(today);
+      dayEnd.setHours(23, 59, 59, 999);
+    }
 
-    const dateStr = today.toISOString().slice(0, 10);
+    const dateStr = localDateParam ?? dayStart.toISOString().slice(0, 10);
 
     const [localEvents, tasks, recentLogs] = await Promise.all([
       prisma.calendarEvent.findMany({
@@ -93,15 +102,10 @@ export async function GET(request: NextRequest) {
 
     const now = new Date();
     let sleepByDate: Date;
-    if (sleepByParam) {
-      const [h, m] = sleepByParam.split(":").map(Number);
-      sleepByDate = new Date(today);
-      sleepByDate.setHours(h ?? 22, m ?? 0, 0, 0);
-      if (sleepByDate <= now) sleepByDate.setDate(sleepByDate.getDate() + 1);
-    } else {
-      sleepByDate = new Date(today);
-      sleepByDate.setHours(22, 0, 0, 0);
-      if (sleepByDate <= now) sleepByDate.setDate(sleepByDate.getDate() + 1);
+    const [sleepH, sleepM] = (sleepByParam ?? "22:00").split(":").map(Number);
+    sleepByDate = new Date(dayStart.getTime() + ((sleepH ?? 22) * 60 + (sleepM ?? 0)) * 60000);
+    if (sleepByDate <= now) {
+      sleepByDate = new Date(sleepByDate.getTime() + 24 * 60 * 60000);
     }
 
     const lastDoseBySubstance: Partial<Record<SubstanceType, Date>> = {};

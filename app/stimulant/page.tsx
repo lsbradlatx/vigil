@@ -269,8 +269,10 @@ export default function StimulantPage() {
       const data = await res.json();
       setHealthProfile(data);
       setLoadingOptimizer(true);
-      const today = new Date().toISOString().slice(0, 10);
-      const params = new URLSearchParams({ sleepBy, mode, date: today });
+      const _now = new Date();
+      const _ds = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
+      const _de = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate(), 23, 59, 59, 999);
+      const params = new URLSearchParams({ sleepBy, mode, dayStart: _ds.toISOString(), dayEnd: _de.toISOString() });
       const optRes = await fetch(`/api/stimulant/optimizer?${params}`);
       if (optRes.ok) setOptimizer(await optRes.json());
     } catch (err) {
@@ -306,8 +308,10 @@ export default function StimulantPage() {
     if (!hasOptimizerData.current) setLoadingOptimizer(true);
     try {
       setError(null);
-      const today = new Date().toISOString().slice(0, 10);
-      const params = new URLSearchParams({ sleepBy, mode, date: today });
+      const _now2 = new Date();
+      const _ds2 = new Date(_now2.getFullYear(), _now2.getMonth(), _now2.getDate());
+      const _de2 = new Date(_now2.getFullYear(), _now2.getMonth(), _now2.getDate(), 23, 59, 59, 999);
+      const params = new URLSearchParams({ sleepBy, mode, dayStart: _ds2.toISOString(), dayEnd: _de2.toISOString() });
       const res = await fetch(`/api/stimulant/optimizer?${params}`);
       if (!res.ok) throw new Error("Failed to load recommendations");
       const data = await res.json();
@@ -335,9 +339,11 @@ export default function StimulantPage() {
       setLoadingLogs(true);
       if (!hasOptimizerData.current) setLoadingOptimizer(true);
     }
-    const today = new Date().toISOString().slice(0, 10);
-    const params = new URLSearchParams({ sleepBy, mode, date: today });
-    const optimizerUrl = `/api/stimulant/optimizer?${params}`;
+    const _now3 = new Date();
+    const _ds3 = new Date(_now3.getFullYear(), _now3.getMonth(), _now3.getDate());
+    const _de3 = new Date(_now3.getFullYear(), _now3.getMonth(), _now3.getDate(), 23, 59, 59, 999);
+    const optimizerParams = new URLSearchParams({ sleepBy, mode, dayStart: _ds3.toISOString(), dayEnd: _de3.toISOString() });
+    const optimizerUrl = `/api/stimulant/optimizer?${optimizerParams}`;
     Promise.all([
       fetch("/api/health-profile")
         .then((res) => (res.ok ? res.json() : null))
