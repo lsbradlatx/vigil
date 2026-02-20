@@ -39,5 +39,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
 export async function getUserId(): Promise<string | null> {
   const session = await auth();
-  return session?.user?.id ?? null;
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  // Sessions can outlive DB resets/user deletions; validate user still exists.
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  return user?.id ?? null;
 }

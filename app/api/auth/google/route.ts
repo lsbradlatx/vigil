@@ -5,7 +5,9 @@ import { getUserId } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     const userId = await getUserId();
-    if (!userId) return NextResponse.redirect(new URL("/auth/login", request.url));
+    if (!userId) {
+      return NextResponse.redirect(new URL("/auth/login?error=session_expired", request.url));
+    }
 
     const origin = resolveOrigin(request);
     const url = getAuthUrl(origin);

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const userId = await getUserId();
   if (!userId) {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    return NextResponse.redirect(new URL("/auth/login?error=session_expired", request.url));
   }
 
   if (error) {
