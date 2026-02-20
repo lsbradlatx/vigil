@@ -320,7 +320,7 @@ export default function DashboardPage() {
           To-dos
         </Link>
         <Link href="/stimulant" className="btn-deco-primary">
-          Stimulant Optimizer
+          Stimulants
         </Link>
       </section>
     </div>

@@ -16,7 +16,7 @@ const features = [
     href: "/todos",
   },
   {
-    title: "Stimulant Optimizer",
+    title: "Stimulants",
     tagline: "Timing is everything",
     description:
       "Log caffeine, Adderall, and nicotine. Get science-backed cutoff times, dose-for-peak suggestions before events, and daily limits — in health or productivity mode.",
