@@ -43,7 +43,9 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/auth/verify-email?email=" + encodeURIComponent(email.trim().toLowerCase()));
+      const params = new URLSearchParams({ email: email.trim().toLowerCase() });
+      if (data.emailSent === false && data.hint) params.set("hint", "1");
+      router.push("/auth/verify-email?" + params.toString());
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);

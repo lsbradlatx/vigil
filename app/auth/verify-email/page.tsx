@@ -7,6 +7,7 @@ import { useState, Suspense } from "react";
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
+  const showEmailHint = searchParams.get("hint") === "1";
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
   const [error, setError] = useState("");
@@ -26,7 +27,7 @@ function VerifyEmailContent() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error ?? "Failed to resend.");
+        setError(data.error ?? data.detail ?? "Failed to resend.");
       } else {
         setResent(true);
       }
@@ -70,6 +71,12 @@ function VerifyEmailContent() {
           <p className="text-charcoal/60 text-sm mb-8">
             Click the link in the email to activate your account. The link expires in 24 hours.
           </p>
+
+          {showEmailHint && (
+            <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm text-left">
+              The verification email could not be sent (e.g. RESEND_API_KEY not set or domain not verified in Resend). Check your spam folder, or try the resend button below after fixing email configuration.
+            </div>
+          )}
 
           {resent && (
             <div className="mb-4 p-3 rounded-lg bg-sage/10 border border-sage/20 text-sage text-sm">

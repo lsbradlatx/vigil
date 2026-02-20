@@ -35,13 +35,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const fwdProto = request.headers.get("x-forwarded-proto");
-    const host = request.headers.get("host");
-    const origin = request.headers.get("origin")
-      ?? (fwdProto && host ? `${fwdProto}://${host}` : null)
-      ?? new URL(request.url).origin;
+    const baseUrl =
+      process.env.NEXTAUTH_URL?.replace(/\/$/, "") ??
+      (() => {
+        const fwdProto = request.headers.get("x-forwarded-proto");
+        const host = request.headers.get("host");
+        return request.headers.get("origin")
+          ?? (fwdProto && host ? `${fwdProto}://${host}` : null)
+          ?? new URL(request.url).origin;
+      })();
 
-    await sendVerificationEmail(trimmedEmail, token, origin);
+    const emailResult = await sendVerificationEmail(trimmedEmail, token, baseUrl);
+
+    if (!emailResult.ok) {
+      console.error("Resend verification email failed:", emailResult.error);
+      return NextResponse.json(
+        { error: "Verification email could not be sent. Check RESEND_API_KEY and Resend domain verification.", detail: emailResult.error },
+        { status: 503 },
+      );
+    }
 
     return NextResponse.json({ message: "If that email exists and is unverified, a new link has been sent." });
   } catch (e) {

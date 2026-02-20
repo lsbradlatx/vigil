@@ -95,20 +95,34 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const fwdProto = request.headers.get("x-forwarded-proto");
-    const host = request.headers.get("host");
-    const origin = request.headers.get("origin")
-      ?? (fwdProto && host ? `${fwdProto}://${host}` : null)
-      ?? new URL(request.url).origin;
+    const baseUrl =
+      process.env.NEXTAUTH_URL?.replace(/\/$/, "") ??
+      (() => {
+        const fwdProto = request.headers.get("x-forwarded-proto");
+        const host = request.headers.get("host");
+        return request.headers.get("origin")
+          ?? (fwdProto && host ? `${fwdProto}://${host}` : null)
+          ?? new URL(request.url).origin;
+      })();
 
-    try {
-      await sendVerificationEmail(user.email, token, origin);
-    } catch (emailErr) {
-      console.error("Failed to send verification email:", emailErr);
+    const emailResult = await sendVerificationEmail(user.email, token, baseUrl);
+
+    if (!emailResult.ok) {
+      console.error("Verification email failed:", emailResult.error);
+      return NextResponse.json(
+        {
+          message: "Account created, but the verification email could not be sent.",
+          emailSent: false,
+          hint: process.env.NODE_ENV === "development"
+            ? emailResult.error
+            : "Check that RESEND_API_KEY is set and that your Resend account has a verified domain (required to send to any email). Check spam or use the resend link on the next page.",
+        },
+        { status: 201 },
+      );
     }
 
     return NextResponse.json(
-      { message: "Account created. Check your email to verify your account." },
+      { message: "Account created. Check your email to verify your account.", emailSent: true },
       { status: 201 },
     );
   } catch (e) {
