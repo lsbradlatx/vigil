@@ -44,6 +44,8 @@ type DoseForPeak = {
   afterCutoff?: boolean;
 };
 
+type Substance = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
+
 type DashboardData = {
   date: string;
   mode: string;
@@ -61,13 +63,38 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [sleepBy, setSleepBy] = useState("22:00");
   const [mode, setMode] = useState<"health" | "productivity">("health");
+  const [enabledSubstances, setEnabledSubstances] = useState<Substance[]>([
+    "CAFFEINE",
+  ]);
 
   useEffect(() => {
     const savedSleep = localStorage.getItem("vigil_sleepBy");
     const savedMode = localStorage.getItem("vigil_mode");
+    const savedSubstances = localStorage.getItem("vigil_enabledSubstances");
     if (savedSleep) setSleepBy(savedSleep);
     if (savedMode === "health" || savedMode === "productivity") setMode(savedMode);
+    if (savedSubstances) {
+      try {
+        const parsed = JSON.parse(savedSubstances) as Substance[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setEnabledSubstances(parsed);
+        }
+      } catch {
+        // Ignore malformed localStorage value and keep default.
+      }
+    }
   }, []);
+
+  const enabledSubstanceSet = new Set(enabledSubstances);
+  const filteredCutoffs = data?.cutoffs.filter((c) =>
+    enabledSubstanceSet.has(c.substance as Substance),
+  ) ?? [];
+  const filteredNextDoseWindows = data?.nextDoseWindows.filter((w) =>
+    enabledSubstanceSet.has(w.substance as Substance),
+  ) ?? [];
+  const filteredDoseForPeak = data?.doseForPeakAtNextEvent.filter((d) =>
+    enabledSubstanceSet.has(d.substance as Substance),
+  ) ?? [];
 
   const handleSleepByChange = (value: string) => {
     setSleepBy(value);
@@ -237,15 +264,18 @@ export default function DashboardPage() {
               <div>
                 <span className="font-medium text-charcoal">Limits:</span>
                 <ul className="mt-0.5 space-y-0.5 text-graphite">
-                  {data.cutoffs.slice(0, 3).map((c) => (
+                  {filteredCutoffs.slice(0, 3).map((c) => (
                     <li key={c.substance}>{c.message}</li>
                   ))}
+                  {filteredCutoffs.length === 0 && (
+                    <li>No selected stimulant recommendations.</li>
+                  )}
                 </ul>
               </div>
               <div>
                 <span className="font-medium text-charcoal">Next dose:</span>
                 <ul className="mt-0.5 space-y-0.5">
-                  {data.nextDoseWindows.map((w) => (
+                  {filteredNextDoseWindows.map((w) => (
                     <li
                       key={w.substance}
                       className={w.atLimit ? "text-amber-700" : "text-graphite"}
@@ -254,13 +284,16 @@ export default function DashboardPage() {
                       {w.message.length > 50 ? "…" : ""}
                     </li>
                   ))}
+                  {filteredNextDoseWindows.length === 0 && (
+                    <li className="text-graphite">No selected stimulant recommendations.</li>
+                  )}
                 </ul>
               </div>
             </div>
           </section>
           </ScrollReveal>
 
-          {data.nextEventToday && data.doseForPeakAtNextEvent.length > 0 && (
+          {data.nextEventToday && filteredDoseForPeak.length > 0 && (
             <ScrollReveal animation="fade-up" delay={400} className="md:col-span-2 lg:col-span-3">
             <section className="card-deco border-sage/40">
               <h2 className="font-display text-lg font-medium text-sage mb-2">
@@ -271,7 +304,7 @@ export default function DashboardPage() {
                 {format(new Date(data.nextEventToday.end), "h:mm a")}
               </p>
               <ul className="space-y-1 text-sm">
-                {data.doseForPeakAtNextEvent.map((d) => (
+                {filteredDoseForPeak.map((d) => (
                   <li
                     key={d.substance}
                     className={d.afterCutoff ? "text-amber-700" : "text-graphite"}
