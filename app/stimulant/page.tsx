@@ -127,6 +127,7 @@ export default function StimulantPage() {
 
   const [sleepBy, setSleepBy] = useState("22:00");
   const [mode, setMode] = useState<OptimizationMode>("health");
+  const [enabledSubstances, setEnabledSubstances] = useState<Substance[]>(["CAFFEINE"]);
 
   const [healthProfile, setHealthProfile] = useState<HealthProfileData | null>(null);
   const [profileUnits, setProfileUnits] = useState<"imperial" | "metric">(() => {
@@ -145,10 +146,34 @@ export default function StimulantPage() {
     const savedSleep = localStorage.getItem("vigil_sleepBy");
     const savedMode = localStorage.getItem("vigil_mode");
     const savedUnits = localStorage.getItem("vigil_profileUnits");
+    const savedSubstances = localStorage.getItem("vigil_enabledSubstances");
     if (savedSleep) setSleepBy(savedSleep);
     if (savedMode === "health" || savedMode === "productivity") setMode(savedMode as OptimizationMode);
     if (savedUnits === "imperial" || savedUnits === "metric") setProfileUnits(savedUnits);
+    if (savedSubstances) {
+      try {
+        const parsed = JSON.parse(savedSubstances) as Substance[];
+        const valid = parsed.filter((s) => SUBSTANCE_OPTIONS.some((opt) => opt.value === s));
+        if (valid.length > 0) {
+          setEnabledSubstances(valid);
+        }
+      } catch {
+        // Ignore malformed localStorage value and keep default.
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("vigil_enabledSubstances", JSON.stringify(enabledSubstances));
+    if (!enabledSubstances.includes(formSubstance)) {
+      const nextSubstance = enabledSubstances[0] ?? "CAFFEINE";
+      setFormSubstance(nextSubstance);
+      if (nextSubstance !== "CAFFEINE") {
+        setFormDrinkId("");
+        setFormDrinkSizeId("");
+      }
+    }
+  }, [enabledSubstances, formSubstance]);
 
   const handleSleepByChange = (value: string) => {
     setSleepBy(value);
@@ -396,6 +421,22 @@ export default function StimulantPage() {
 
   const selectedDrink = drinks.find((d) => d.id === formDrinkId);
   const selectedSize = selectedDrink?.sizes.find((s) => s.id === formDrinkSizeId);
+  const enabledSubstanceSet = new Set(enabledSubstances);
+  const visibleCutoffs = optimizer?.cutoffs.filter((c) => enabledSubstanceSet.has(c.substance)) ?? [];
+  const visibleNextDoseWindows =
+    optimizer?.nextDoseWindows.filter((w) => enabledSubstanceSet.has(w.substance)) ?? [];
+  const visiblePeakSuggestions =
+    optimizer?.doseForPeakAtNextEvent?.filter((d) => enabledSubstanceSet.has(d.substance as Substance)) ?? [];
+
+  const toggleEnabledSubstance = (substance: Substance) => {
+    setEnabledSubstances((prev) => {
+      if (prev.includes(substance)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((s) => s !== substance);
+      }
+      return [...prev, substance];
+    });
+  };
 
   const submitLog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -606,7 +647,7 @@ export default function StimulantPage() {
               }}
               className="input-deco w-full"
             >
-              {SUBSTANCE_OPTIONS.map((opt) => (
+              {SUBSTANCE_OPTIONS.filter((opt) => enabledSubstanceSet.has(opt.value)).map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -751,6 +792,31 @@ export default function StimulantPage() {
           Recommendations
         </h2>
 
+        <div className="mb-4">
+          <p className="text-graphite text-xs uppercase tracking-wide mb-2">Substances in use</p>
+          <div className="flex flex-wrap gap-3">
+            {SUBSTANCE_OPTIONS.map((opt) => {
+              const checked = enabledSubstances.includes(opt.value);
+              const disableUncheck = checked && enabledSubstances.length === 1;
+              return (
+                <label key={opt.value} className={`flex items-center gap-2 text-sm ${disableUncheck ? "opacity-70" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disableUncheck}
+                    onChange={() => toggleEnabledSubstance(opt.value)}
+                    className="h-4 w-4 rounded border-sage text-sage focus:ring-sage"
+                  />
+                  <span className="text-obsidian">{opt.label}</span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="text-graphite text-xs mt-2">
+            Choose only the substances you actually use so recommendations stay focused.
+          </p>
+        </div>
+
         {optimizer?.healthProfile?.medications && (
           <p className="text-amber-700 dark:text-amber-400 text-xs mb-3">
             Discuss with your doctor.
@@ -759,7 +825,15 @@ export default function StimulantPage() {
 
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="flex items-center gap-3">
-            <span className="text-graphite text-sm">Mode</span>
+            <span className="text-graphite text-sm inline-flex items-center gap-1.5">
+              Mode
+              <span className="relative group inline-flex items-center justify-center w-4 h-4 rounded-full border border-[var(--color-border-strong)] text-[10px] text-graphite cursor-help">
+                i
+                <span className="pointer-events-none absolute left-1/2 top-5 z-10 -translate-x-1/2 w-64 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[11px] leading-relaxed text-charcoal shadow-md opacity-0 transition-opacity group-hover:opacity-100">
+                  Health mode prioritizes earlier cutoffs and more conservative spacing for better sleep. Productivity mode allows more flexible timing while staying within daily safety limits.
+                </span>
+              </span>
+            </span>
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
@@ -810,7 +884,7 @@ export default function StimulantPage() {
             <div>
               <p className="text-graphite text-xs uppercase tracking-wide mb-1.5">Limits</p>
               <ul className="space-y-0.5 text-sm text-obsidian/90">
-                {optimizer.cutoffs.map((c) => (
+                {visibleCutoffs.map((c) => (
                   <li key={c.substance} className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
                     <span className="text-sage font-medium">{c.label}</span>
                     <span>{c.message}</span>
@@ -822,7 +896,7 @@ export default function StimulantPage() {
             <div>
               <p className="text-graphite text-xs uppercase tracking-wide mb-1.5">Next dose</p>
               <ul className="space-y-1.5">
-                {optimizer.nextDoseWindows.map((w) => {
+                {visibleNextDoseWindows.map((w) => {
                   const gov = optimizer.governmentLimits?.[w.substance];
                   const overGovMg = gov && w.totalMgToday != null && w.totalMgToday > gov.maxMgPerDay;
                   const overGovDoses = gov && w.dosesToday != null && w.dosesToday > gov.maxDosesPerDay;
@@ -880,14 +954,14 @@ export default function StimulantPage() {
               </li>
             ))}
           </ul>
-          {optimizer.nextEventToday && optimizer.doseForPeakAtNextEvent && optimizer.doseForPeakAtNextEvent.length > 0 && (
+          {optimizer.nextEventToday && visiblePeakSuggestions.length > 0 && (
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-linen)] p-3">
               <h3 className="font-medium text-obsidian mb-1">{optimizer.nextEventToday.title}</h3>
               <p className="text-graphite text-xs mb-2">
                 {format(new Date(optimizer.nextEventToday.start), "h:mm a")} – {format(new Date(optimizer.nextEventToday.end), "h:mm a")}
               </p>
               <ul className="space-y-0.5 text-sm">
-                {optimizer.doseForPeakAtNextEvent.map((d) => (
+                {visiblePeakSuggestions.map((d) => (
                   <li key={d.substance} className={d.afterCutoff ? "text-amber-700" : "text-obsidian/80"}>
                     {d.message}
                   </li>
