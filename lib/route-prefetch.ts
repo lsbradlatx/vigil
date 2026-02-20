@@ -26,13 +26,13 @@ export function isCacheStale(href: string): boolean {
 export function prefetchRouteData(href: string): void {
   if (typeof window === "undefined") return;
   const path = href.split("?")[0];
-  if (path === "/") {
+  if (path === "/dashboard") {
     const sleepBy = localStorage.getItem("vigil_sleepBy") ?? "22:00";
     const mode = localStorage.getItem("vigil_mode") ?? "health";
     const params = new URLSearchParams({ sleepBy, mode });
     fetch(`/api/dashboard?${params}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data != null && setCachedRouteData("/", data))
+      .then((data) => data != null && setCachedRouteData("/dashboard", data))
       .catch(() => {});
     return;
   }

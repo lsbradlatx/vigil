@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { prefetchRouteData } from "@/lib/route-prefetch";
 
 const links = [
-  { href: "/", label: "Home" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/calendar", label: "Calendar" },
   { href: "/todos", label: "To-dos" },
   { href: "/stimulant", label: "Stimulant Optimizer" },
