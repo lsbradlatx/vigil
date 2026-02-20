@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTokensFromCode } from "@/lib/google-calendar";
+import { getTokensFromCode, resolveOrigin } from "@/lib/google-calendar";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
-  const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+  const origin = resolveOrigin(request);
   const base = new URL("/calendar", origin);
 
   if (error) {

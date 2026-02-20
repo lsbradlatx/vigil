@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUrl } from "@/lib/google-calendar";
+import { getAuthUrl, resolveOrigin } from "@/lib/google-calendar";
 
 export async function GET(request: NextRequest) {
   try {
-    const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+    const origin = resolveOrigin(request);
     const url = getAuthUrl(origin);
     return NextResponse.redirect(url);
   } catch (e) {

@@ -1,6 +1,25 @@
 import { google } from "googleapis";
+import type { NextRequest } from "next/server";
 
 const SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"];
+
+/**
+ * Resolve the public-facing origin from a request. Railway (and most reverse
+ * proxies) set x-forwarded-host / x-forwarded-proto; request.nextUrl.origin
+ * returns the internal container address (e.g. localhost:8080) and must not
+ * be used for user-facing redirects.
+ */
+export function resolveOrigin(request: NextRequest): string {
+  const fwdHost = request.headers.get("x-forwarded-host");
+  const fwdProto = request.headers.get("x-forwarded-proto") ?? "https";
+  if (fwdHost) return `${fwdProto}://${fwdHost}`;
+  const host = request.headers.get("host");
+  if (host) {
+    const proto = host.startsWith("localhost") ? "http" : "https";
+    return `${proto}://${host}`;
+  }
+  return request.nextUrl.origin;
+}
 
 function getRedirectUri(origin?: string) {
   if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;

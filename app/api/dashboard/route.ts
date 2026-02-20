@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCalendarEvents } from "@/lib/google-calendar";
 import {
   getCutoffTimes,
   getNextDoseWindows,
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     const dateStr = today.toISOString().slice(0, 10);
 
-    const [events, tasks, recentLogs] = await Promise.all([
+    const [localEvents, tasks, recentLogs] = await Promise.all([
       prisma.calendarEvent.findMany({
         where: {
           AND: [
@@ -58,6 +59,37 @@ export async function GET(request: NextRequest) {
         orderBy: { loggedAt: "desc" },
       }),
     ]);
+
+    let googleEvents: { id: string; title: string; start: string; end: string; allDay: boolean; source: "google" }[] = [];
+    try {
+      const tokenRow = await prisma.googleCalendarToken.findFirst();
+      if (tokenRow) {
+        googleEvents = await getCalendarEvents(
+          tokenRow.refreshToken,
+          dayStart.toISOString(),
+          dayEnd.toISOString()
+        );
+      }
+    } catch (e) {
+      console.error("Dashboard: Google Calendar fetch failed (non-fatal):", e);
+    }
+
+    const events = [
+      ...localEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        start: e.start.toISOString(),
+        end: e.end.toISOString(),
+        allDay: e.allDay,
+      })),
+      ...googleEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        start: e.start,
+        end: e.end,
+        allDay: e.allDay,
+      })),
+    ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
     const now = new Date();
     let sleepByDate: Date;
