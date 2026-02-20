@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/auth";
 
 const VALID_SUBSTANCES = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"] as const;
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const startParam = searchParams.get("start");
     const endParam = searchParams.get("end");
     const limitParam = searchParams.get("limit");
 
-    const where: { loggedAt?: { gte?: Date; lte?: Date } } = {};
+    const where: { userId: string; loggedAt?: { gte?: Date; lte?: Date } } = { userId };
     if (startParam) where.loggedAt = { ...where.loggedAt, gte: new Date(startParam) };
     if (endParam) where.loggedAt = { ...where.loggedAt, lte: new Date(endParam) };
 
     const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 50, 100) : 50;
 
     const logs = await prisma.stimulantLog.findMany({
-      where: Object.keys(where).length ? where : undefined,
+      where,
       orderBy: { loggedAt: "desc" },
       take: limit,
     });
@@ -33,6 +37,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const { substance, amount, amountMg, drinkSizeId, loggedAt, notes } = body as {
       substance: string;
@@ -73,6 +80,7 @@ export async function POST(request: NextRequest) {
         amountMg: finalAmountMg,
         loggedAt: loggedAt ? new Date(loggedAt) : new Date(),
         notes: notes?.trim() ?? null,
+        userId,
       },
     });
     return NextResponse.json(log);

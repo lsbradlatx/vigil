@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateTaskCompleted } from "@/lib/asana";
+import { getUserId } from "@/lib/auth";
 
-// PATCH body: { taskId: "asana-123456", completed: true }
 export async function PATCH(request: NextRequest) {
   try {
-    const row = await prisma.asanaToken.findFirst();
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const row = await prisma.asanaToken.findUnique({ where: { userId } });
     if (!row) return NextResponse.json({ error: "Not connected" }, { status: 401 });
     const body = await request.json();
     const { taskId, completed } = body as { taskId?: string; completed?: boolean };

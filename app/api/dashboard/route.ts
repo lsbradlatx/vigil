@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/auth";
 import { getCalendarEvents } from "@/lib/google-calendar";
 import {
   getCutoffTimes,
@@ -14,12 +15,11 @@ import {
 
 const VALID_MODES: OptimizationMode[] = ["health", "productivity"];
 
-/**
- * GET /api/dashboard?date=YYYY-MM-DD&sleepBy=22:00&mode=health
- * Returns integrated data for the given day: events, tasks due, optimizer, and dose-for-peak for next event.
- */
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const sleepByParam = searchParams.get("sleepBy");
     const modeParam = searchParams.get("mode");
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     const [localEvents, tasks, recentLogs] = await Promise.all([
       prisma.calendarEvent.findMany({
         where: {
+          userId,
           AND: [
             { start: { lte: dayEnd } },
             { end: { gte: dayStart } },
@@ -59,19 +60,20 @@ export async function GET(request: NextRequest) {
       }),
       prisma.task.findMany({
         where: {
+          userId,
           dueDate: { gte: dayStart, lte: dayEnd },
         },
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       }),
       prisma.stimulantLog.findMany({
-        where: { loggedAt: { gte: new Date(dayStart.getTime() - 24 * 60 * 60 * 1000) } },
+        where: { userId, loggedAt: { gte: new Date(dayStart.getTime() - 24 * 60 * 60 * 1000) } },
         orderBy: { loggedAt: "desc" },
       }),
     ]);
 
     let googleEvents: { id: string; title: string; start: string; end: string; allDay: boolean; source: "google" }[] = [];
     try {
-      const tokenRow = await prisma.googleCalendarToken.findFirst();
+      const tokenRow = await prisma.googleCalendarToken.findUnique({ where: { userId } });
       if (tokenRow) {
         googleEvents = await getCalendarEvents(
           tokenRow.refreshToken,
@@ -127,7 +129,7 @@ export async function GET(request: NextRequest) {
       now
     );
 
-    const healthProfileRow = await prisma.userHealthProfile.findFirst();
+    const healthProfileRow = await prisma.userHealthProfile.findUnique({ where: { userId } });
     const healthProfile = healthProfileRow
       ? {
           weightKg: healthProfileRow.weightKg,

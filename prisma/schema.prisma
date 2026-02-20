@@ -1,5 +1,3 @@
-// Prisma schema for Vigil - SQLite (single user, no auth)
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,6 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  passwordHash  String
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+
+  tasks               Task[]
+  calendarEvents      CalendarEvent[]
+  stimulantLogs       StimulantLog[]
+  googleCalendarToken GoogleCalendarToken?
+  asanaToken          AsanaToken?
+  healthProfile       UserHealthProfile?
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model Task {
   id        String   @id @default(cuid())
   title     String
@@ -16,6 +38,8 @@ model Task {
   dueDate   DateTime?
   order     Int      @default(0)
   createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CalendarEvent {
@@ -26,54 +50,60 @@ model CalendarEvent {
   allDay    Boolean  @default(false)
   color     String?
   createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model StimulantLog {
-  id       String   @id @default(cuid())
-  substance String  // CAFFEINE | ADDERALL | DEXEDRINE | NICOTINE (SQLite has no enums)
-  amount   String?  // display e.g. "100mg", "1 cup"
-  amountMg Float?   // numeric mg for daily total (caffeine/adderall); nicotine in mg
-  loggedAt DateTime
-  notes    String?
+  id        String   @id @default(cuid())
+  substance String
+  amount    String?
+  amountMg  Float?
+  loggedAt  DateTime
+  notes     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Single row for app: Google Calendar OAuth refresh token (single-user app)
 model GoogleCalendarToken {
-  id           String   @id // use "default" as the single row id
+  id           String   @id @default(cuid())
   refreshToken String
   updatedAt    DateTime @updatedAt
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Single row for app: Asana Personal Access Token (single-user app)
 model AsanaToken {
-  id            String   @id // use "default"
-  accessToken   String
-  workspaceGid  String?   // optional; if null, first workspace is used when fetching
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  accessToken  String
+  workspaceGid String?
+  updatedAt    DateTime @updatedAt
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Single row for app: user health profile for personalized stimulant recommendations
 model UserHealthProfile {
-  id         String   @id // use "default"
-  weightKg   Float?
-  heightCm   Float?
-  allergies  String?  // comma-separated or JSON array
+  id          String   @id @default(cuid())
+  weightKg    Float?
+  heightCm    Float?
+  allergies   String?
   medications String?
-  updatedAt  DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Caffeine drink database for auto-computing dose when logging
 model Drink {
-  id     String      @id @default(cuid())
-  name   String      // e.g. "Caffe Latte"
-  brand  String?     // e.g. "Starbucks"
-  sizes  DrinkSize[]
+  id    String      @id @default(cuid())
+  name  String
+  brand String?
+  sizes DrinkSize[]
 }
 
 model DrinkSize {
   id         String @id @default(cuid())
   drinkId    String
   drink      Drink  @relation(fields: [drinkId], references: [id], onDelete: Cascade)
-  sizeLabel  String // e.g. "Grande"
-  caffeineMg Int    // caffeine in mg
+  sizeLabel  String
+  caffeineMg Int
 }

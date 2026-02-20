@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
-import { Nav } from "@/components/Nav";
+import { AuthHeader } from "@/components/AuthHeader";
 import { StorageMigration } from "@/components/StorageMigration";
+import { SessionProvider } from "next-auth/react";
 
 const cormorant = Cormorant_Garamond({
   weight: ["300", "400", "600"],
@@ -31,16 +32,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body className="min-h-screen bg-cream">
-        <StorageMigration />
-        <header className="nav">
-          <div className="container flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 h-full">
-            <a href="/" className="font-display text-2xl font-medium text-obsidian tracking-tight hover:text-sage transition-colors">
-              Vigil
-            </a>
-            <Nav />
-          </div>
-        </header>
-        <main className="container py-8 sm:py-12">{children}</main>
+        <SessionProvider>
+          <StorageMigration />
+          <AuthHeader />
+          <main className="container py-8 sm:py-12">{children}</main>
+        </SessionProvider>
       </body>
     </html>
   );

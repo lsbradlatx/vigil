@@ -51,6 +51,14 @@ export function Nav() {
   return (
     <nav className="flex flex-wrap items-center gap-1">
       <Link
+        href="/"
+        className={`nav__link px-3 py-2 rounded-full ${
+          pathname === "/" ? "!text-sage font-semibold bg-sage-light/40" : ""
+        }`}
+      >
+        Home
+      </Link>
+      <Link
         href="/dashboard"
         className={`nav__link px-3 py-2 rounded-full ${
           pathname === "/dashboard" ? "!text-sage font-semibold bg-sage-light/40" : ""

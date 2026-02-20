@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const startParam = searchParams.get("start");
     const endParam = searchParams.get("end");
-    const dateParam = searchParams.get("date"); // YYYY-MM-DD — events overlapping this day
+    const dateParam = searchParams.get("date");
 
-    type WhereClause = { start?: { gte: Date }; end?: { lte: Date }; AND?: Array<Record<string, unknown>> };
+    type WhereClause = { userId: string; start?: { gte: Date }; end?: { lte: Date }; AND?: Array<Record<string, unknown>> };
 
-    let where: WhereClause = {};
+    let where: WhereClause = { userId };
     if (dateParam) {
       const d = new Date(dateParam);
       const dayStart = new Date(d);
@@ -18,6 +22,7 @@ export async function GET(request: NextRequest) {
       const dayEnd = new Date(d);
       dayEnd.setHours(23, 59, 59, 999);
       where = {
+        userId,
         AND: [
           { start: { lte: dayEnd } },
           { end: { gte: dayStart } },
@@ -29,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     const events = await prisma.calendarEvent.findMany({
-      where: Object.keys(where).length ? where : undefined,
+      where,
       orderBy: { start: "asc" },
     });
     return NextResponse.json(events);
@@ -44,6 +49,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const { title, start, end, allDay, color } = body as {
       title: string;
@@ -65,6 +73,7 @@ export async function POST(request: NextRequest) {
         end: new Date(end),
         allDay: !!allDay,
         color: color ?? null,
+        userId,
       },
     });
     return NextResponse.json(event);

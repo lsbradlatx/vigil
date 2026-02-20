@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/auth";
 import {
   getCutoffTimes,
   getNextDoseWindows,
@@ -15,6 +16,9 @@ const VALID_MODES: OptimizationMode[] = ["health", "productivity"];
 
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const sleepBy = searchParams.get("sleepBy");
     const nowParam = searchParams.get("now");
@@ -53,10 +57,10 @@ export async function GET(request: NextRequest) {
 
     const [recentLogs, healthProfileRow] = await Promise.all([
       prisma.stimulantLog.findMany({
-        where: { loggedAt: { gte: dayAgo } },
+        where: { userId, loggedAt: { gte: dayAgo } },
         orderBy: { loggedAt: "desc" },
       }),
-      prisma.userHealthProfile.findFirst(),
+      prisma.userHealthProfile.findUnique({ where: { userId } }),
     ]);
 
     const lastDoseBySubstance: Partial<Record<SubstanceType, Date>> = {};
@@ -111,6 +115,7 @@ export async function GET(request: NextRequest) {
 
     const eventsToday = await prisma.calendarEvent.findMany({
       where: {
+        userId,
         AND: [
           { start: { lte: dayEnd } },
           { end: { gte: dayStart } },

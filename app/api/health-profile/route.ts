@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/auth";
 
 const MIN_WEIGHT_KG = 30;
 const MAX_WEIGHT_KG = 300;
@@ -8,7 +9,10 @@ const MAX_HEIGHT_CM = 250;
 
 export async function GET() {
   try {
-    const row = await prisma.userHealthProfile.findFirst();
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const row = await prisma.userHealthProfile.findUnique({ where: { userId } });
     if (!row) {
       const res = NextResponse.json({
         weightKg: null,
@@ -48,6 +52,9 @@ function parseAllergiesOrMedications(value: unknown): string | null {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const {
       weightKg,
@@ -95,10 +102,10 @@ export async function PATCH(request: NextRequest) {
     if (allergies !== undefined) data.allergies = parseAllergiesOrMedications(allergies);
     if (medications !== undefined) data.medications = parseAllergiesOrMedications(medications);
 
-    const existing = await prisma.userHealthProfile.findFirst();
+    const existing = await prisma.userHealthProfile.findUnique({ where: { userId } });
     if (existing) {
       const updated = await prisma.userHealthProfile.update({
-        where: { id: existing.id },
+        where: { userId },
         data,
       });
       return NextResponse.json({
@@ -110,11 +117,11 @@ export async function PATCH(request: NextRequest) {
     }
     const created = await prisma.userHealthProfile.create({
       data: {
-        id: "default",
         weightKg: data.weightKg ?? null,
         heightCm: data.heightCm ?? null,
         allergies: data.allergies ?? null,
         medications: data.medications ?? null,
+        userId,
       },
     });
     return NextResponse.json({

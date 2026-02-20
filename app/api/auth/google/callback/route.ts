@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokensFromCode, resolveOrigin } from "@/lib/google-calendar";
 import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -8,6 +9,11 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
   const origin = resolveOrigin(request);
   const base = new URL("/calendar", origin);
+
+  const userId = await getUserId();
+  if (!userId) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
 
   if (error) {
     return NextResponse.redirect(new URL(`/calendar?error=google_denied`, base));
@@ -18,11 +24,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const refreshToken = await getTokensFromCode(code, origin);
-    const existing = await prisma.googleCalendarToken.findFirst();
+    const existing = await prisma.googleCalendarToken.findUnique({ where: { userId } });
     if (existing) {
-      await prisma.googleCalendarToken.update({ where: { id: existing.id }, data: { refreshToken } });
+      await prisma.googleCalendarToken.update({ where: { userId }, data: { refreshToken } });
     } else {
-      await prisma.googleCalendarToken.create({ data: { id: "default", refreshToken } });
+      await prisma.googleCalendarToken.create({ data: { refreshToken, userId } });
     }
   } catch (e) {
     console.error(e);

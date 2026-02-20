@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getWorkspaces } from "@/lib/asana";
+import { getUserId } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const row = await prisma.asanaToken.findFirst();
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const row = await prisma.asanaToken.findUnique({ where: { userId } });
     if (!row) return NextResponse.json({ error: "Not connected" }, { status: 401 });
     const workspaces = await getWorkspaces(row.accessToken);
     return NextResponse.json(workspaces);

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserId } from "@/lib/auth";
 
 export async function PATCH(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const body = await _request.json();
     const { title, completed, dueDate, order } = body as {
@@ -21,7 +25,7 @@ export async function PATCH(
     if (typeof order === "number") data.order = order;
 
     const task = await prisma.task.update({
-      where: { id },
+      where: { id, userId },
       data,
     });
     return NextResponse.json(task);
@@ -39,8 +43,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
-    await prisma.task.delete({ where: { id } });
+    await prisma.task.deleteMany({ where: { id, userId } });
     return new NextResponse(null, { status: 204 });
   } catch (e) {
     console.error(e);
