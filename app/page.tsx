@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 const features = [
   {
@@ -47,106 +50,141 @@ const steps = [
 
 export default function LandingPage() {
   return (
-    <div className="space-y-20">
-      {/* Hero */}
-      <section className="text-center py-12 md:py-20 max-w-3xl mx-auto">
-        <h1 className="font-display text-5xl md:text-6xl font-semibold text-obsidian tracking-tight leading-tight mb-6">
-          Stay sharp. Stay scheduled.
-          <br />
-          Stay in control.
-        </h1>
-        <p className="text-charcoal text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-          Vigil is a scheduling, productivity, and stimulant timing app that helps you
-          optimize your day — from your first cup of coffee to your last task before bed.
-        </p>
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Link href="/dashboard" className="btn-deco-primary text-base px-8 py-3">
-            Get Started
-          </Link>
-          <a href="#features" className="btn-deco text-base px-8 py-3">
-            See Features
-          </a>
+    <div className="overflow-hidden">
+      {/* ── Hero ── */}
+      <section className="bg-[var(--color-cream)] py-20 md:py-32">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <ScrollReveal animation="fade-up">
+            <h1 className="font-display text-5xl md:text-6xl font-semibold text-obsidian tracking-tight leading-tight mb-6">
+              Stay sharp. Stay scheduled.
+              <br />
+              Stay in control.
+            </h1>
+          </ScrollReveal>
+          <ScrollReveal animation="fade-up" delay={200}>
+            <p className="text-charcoal text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+              Vigil is a scheduling, productivity, and stimulant timing app that helps you
+              optimize your day — from your first cup of coffee to your last task before bed.
+            </p>
+          </ScrollReveal>
+          <ScrollReveal animation="scale-in" delay={400}>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link href="/dashboard" className="btn-deco-primary text-base px-8 py-3">
+                Get Started
+              </Link>
+              <a href="#features" className="btn-deco text-base px-8 py-3">
+                See Features
+              </a>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="space-y-8">
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="font-display text-3xl md:text-4xl font-medium text-obsidian tracking-tight mb-3">
-            Everything you need to own your day
-          </h2>
-          <p className="text-graphite text-base md:text-lg">
-            Three tools that work together so you can focus on what matters.
-          </p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
-          {features.map((f) => (
-            <Link
-              key={f.href}
-              href={f.href}
-              className="card-deco flex flex-col gap-3 group"
-            >
-              <p className="text-sage text-sm font-medium uppercase tracking-widest">
-                {f.tagline}
-              </p>
-              <h3 className="font-display text-2xl font-medium text-obsidian group-hover:text-sage transition-colors">
-                {f.title}
-              </h3>
-              <p className="text-graphite text-sm leading-relaxed">
-                {f.description}
-              </p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="space-y-8">
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="font-display text-3xl md:text-4xl font-medium text-obsidian tracking-tight mb-3">
-            How it works
-          </h2>
-          <p className="text-graphite text-base md:text-lg">
-            From scattered habits to deliberate routine — in three steps.
-          </p>
-        </div>
-        <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-          {steps.map((s) => (
-            <div key={s.number} className="space-y-3">
-              <span className="font-display text-4xl font-light text-sage/60">
-                {s.number}
-              </span>
-              <h3 className="font-display text-xl font-medium text-obsidian">
-                {s.title}
-              </h3>
-              <p className="text-graphite text-sm leading-relaxed">
-                {s.description}
+      {/* ── Features ── */}
+      <section id="features" className="bg-[var(--color-linen)] py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-6">
+          <ScrollReveal animation="slide-left">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="font-display text-3xl md:text-4xl font-medium text-obsidian tracking-tight mb-3">
+                Everything you need to own your day
+              </h2>
+              <p className="text-graphite text-base md:text-lg">
+                Three tools that work together so you can focus on what matters.
               </p>
             </div>
-          ))}
+          </ScrollReveal>
+          <div className="grid gap-6 md:grid-cols-3">
+            {features.map((f, i) => (
+              <ScrollReveal key={f.href} animation="fade-up" delay={(i + 1) * 100 as 100 | 200 | 300}>
+                <Link
+                  href={f.href}
+                  className="card-deco flex flex-col gap-3 group h-full"
+                >
+                  <p className="text-sage text-sm font-medium uppercase tracking-widest">
+                    {f.tagline}
+                  </p>
+                  <h3 className="font-display text-2xl font-medium text-obsidian group-hover:text-sage transition-colors">
+                    {f.title}
+                  </h3>
+                  <p className="text-graphite text-sm leading-relaxed">
+                    {f.description}
+                  </p>
+                </Link>
+              </ScrollReveal>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Integrations */}
-      <section className="card-deco max-w-3xl mx-auto text-center py-8 space-y-4">
-        <h2 className="font-display text-2xl font-medium text-obsidian">
-          Connects to your workflow
-        </h2>
-        <p className="text-graphite text-sm max-w-lg mx-auto leading-relaxed">
-          Pull in events from <span className="font-medium text-charcoal">Google Calendar</span> and
-          tasks from <span className="font-medium text-charcoal">Asana</span> — or use
-          Vigil on its own. Everything syncs automatically once connected.
-        </p>
+      {/* ── How it works ── */}
+      <section className="bg-[var(--color-cream)] py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-6">
+          <ScrollReveal animation="fade-up">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="font-display text-3xl md:text-4xl font-medium text-obsidian tracking-tight mb-3">
+                How it works
+              </h2>
+              <p className="text-graphite text-base md:text-lg">
+                From scattered habits to deliberate routine — in three steps.
+              </p>
+            </div>
+          </ScrollReveal>
+          <div className="grid gap-10 md:grid-cols-3">
+            {steps.map((s, i) => (
+              <ScrollReveal
+                key={s.number}
+                animation={i % 2 === 0 ? "slide-left" : "slide-right"}
+                delay={(i + 1) * 100 as 100 | 200 | 300}
+              >
+                <div className="space-y-3">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[var(--color-sage-light)] bg-opacity-40">
+                    <span className="font-display text-2xl font-light text-sage">
+                      {s.number}
+                    </span>
+                  </div>
+                  <h3 className="font-display text-xl font-medium text-obsidian">
+                    {s.title}
+                  </h3>
+                  <p className="text-graphite text-sm leading-relaxed">
+                    {s.description}
+                  </p>
+                </div>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="text-center py-12 space-y-6">
-        <h2 className="font-display text-3xl md:text-4xl font-medium text-obsidian tracking-tight">
-          Ready to take control of your day?
-        </h2>
-        <Link href="/dashboard" className="btn-deco-primary text-base px-10 py-3 inline-block">
-          Open Dashboard
-        </Link>
+      {/* ── Integrations ── */}
+      <section className="bg-[var(--color-obsidian)] py-20 md:py-24">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <ScrollReveal animation="fade-in">
+            <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--color-cream)] mb-4">
+              Connects to your workflow
+            </h2>
+            <p className="text-[var(--color-cream)]/70 text-sm md:text-base max-w-lg mx-auto leading-relaxed">
+              Pull in events from{" "}
+              <span className="font-medium text-[var(--color-sage-light)]">Google Calendar</span>{" "}
+              and tasks from{" "}
+              <span className="font-medium text-[var(--color-sage-light)]">Asana</span>{" "}
+              — or use Vigil on its own. Everything syncs automatically once connected.
+            </p>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ── Bottom CTA ── */}
+      <section className="bg-[var(--color-sage-light)] bg-opacity-20 py-20 md:py-24">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <ScrollReveal animation="fade-up">
+            <h2 className="font-display text-3xl md:text-4xl font-medium text-obsidian tracking-tight mb-6">
+              Ready to take control of your day?
+            </h2>
+            <Link href="/dashboard" className="btn-deco-primary text-base px-10 py-3 inline-block">
+              Open Dashboard
+            </Link>
+          </ScrollReveal>
+        </div>
       </section>
     </div>
   );

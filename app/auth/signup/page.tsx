@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -53,7 +54,8 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="container py-8 sm:py-12 min-h-[60vh] flex items-center justify-center">
+      <ScrollReveal animation="scale-in">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="font-display text-4xl font-light text-obsidian mb-2">
@@ -68,7 +70,7 @@ export default function SignupPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="card-deco p-8 space-y-5 hover:transform-none">
+        <form onSubmit={handleSubmit} className="card-deco card-no-lift p-8 space-y-5">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-charcoal mb-1.5">
               Username
@@ -157,6 +159,7 @@ export default function SignupPage() {
           </Link>
         </p>
       </div>
+      </ScrollReveal>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export default function RootLayout({
         <SessionProvider>
           <StorageMigration />
           <AuthHeader />
-          <main className="container py-8 sm:py-12">{children}</main>
+          <main>{children}</main>
         </SessionProvider>
       </body>
     </html>

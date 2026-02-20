@@ -5,6 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { getCachedRouteData } from "@/lib/route-prefetch";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 import type { CalendarGridEvent } from "@/components/CalendarGrid";
@@ -267,7 +268,8 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container py-8 sm:py-12 space-y-6">
+      <ScrollReveal animation="fade-up">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-display text-3xl font-medium text-obsidian">Calendar</h1>
         <div className="flex items-center gap-2">
@@ -287,6 +289,7 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+      </ScrollReveal>
 
       {googleMessage === "connected" && (
         <div className="rounded-md border border-[var(--color-sage)] bg-[var(--color-sage-light)] text-obsidian px-4 py-2 text-sm">
@@ -304,6 +307,7 @@ export default function CalendarPage() {
         </div>
       )}
 
+      <ScrollReveal animation="scale-in" delay={100}>
       <div className="card-deco overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center min-h-[500px] text-graphite">
@@ -319,7 +323,9 @@ export default function CalendarPage() {
           />
         )}
       </div>
+      </ScrollReveal>
 
+      <ScrollReveal animation="fade-up" delay={200}>
       <section className="card-deco">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-display text-lg font-medium text-sage">
@@ -347,6 +353,7 @@ export default function CalendarPage() {
           </ul>
         )}
       </section>
+      </ScrollReveal>
 
       {showForm && (
         <div className="fixed inset-0 bg-obsidian/40 flex items-center justify-center z-20 p-4">

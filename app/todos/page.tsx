@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getCachedRouteData } from "@/lib/route-prefetch";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import {
   format,
   isPast,
@@ -270,7 +271,9 @@ export default function TodosPage() {
   const tasksDueToday = tasks.filter((t) => t.dueDate && format(new Date(t.dueDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") && !t.completed);
 
   return (
+    <div className="container py-8 sm:py-12">
     <div className="max-w-2xl mx-auto space-y-6">
+      <ScrollReveal animation="fade-up">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-display text-3xl font-medium text-obsidian">To-dos</h1>
         <div className="flex items-center gap-2">
@@ -294,6 +297,7 @@ export default function TodosPage() {
           )}
         </div>
       </div>
+      </ScrollReveal>
 
       {showConnectForm && !asanaConnected && (
         <section className="card-deco">
@@ -346,6 +350,7 @@ export default function TodosPage() {
         </div>
       )}
 
+      <ScrollReveal animation="fade-up" delay={100}>
       <form onSubmit={addTask} className="flex flex-col sm:flex-row gap-2 flex-wrap">
         <input
           type="text"
@@ -366,7 +371,9 @@ export default function TodosPage() {
           Add
         </button>
       </form>
+      </ScrollReveal>
 
+      <ScrollReveal animation="fade-up" delay={200}>
       <ul className="space-y-2">
         {loading ? (
           <li className="card-deco text-graphite text-center py-6">
@@ -525,6 +532,8 @@ export default function TodosPage() {
           })
         )}
       </ul>
+      </ScrollReveal>
+    </div>
     </div>
   );
 }

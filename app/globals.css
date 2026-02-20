@@ -169,3 +169,74 @@ input[type="checkbox"] {
 .todo-item.completed .todo-strike {
   transform: scaleX(1);
 }
+
+/* ============================================================
+   SCROLL-REVEAL ANIMATIONS
+   ============================================================ */
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-60px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(60px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.scroll-reveal {
+  opacity: 0;
+}
+.scroll-reveal.is-visible.anim-slide-left  { animation: slide-in-left 0.7s var(--ease-out) forwards; }
+.scroll-reveal.is-visible.anim-slide-right { animation: slide-in-right 0.7s var(--ease-out) forwards; }
+.scroll-reveal.is-visible.anim-fade-up     { animation: fade-up 0.7s var(--ease-out) forwards; }
+.scroll-reveal.is-visible.anim-fade-in     { animation: fade-in 0.6s var(--ease-in-out) forwards; }
+.scroll-reveal.is-visible.anim-scale-in    { animation: scale-in 0.6s var(--ease-out) forwards; }
+
+.anim-delay-100 { animation-delay: 100ms !important; }
+.anim-delay-200 { animation-delay: 200ms !important; }
+.anim-delay-300 { animation-delay: 300ms !important; }
+.anim-delay-400 { animation-delay: 400ms !important; }
+.anim-delay-500 { animation-delay: 500ms !important; }
+.anim-delay-600 { animation-delay: 600ms !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal { opacity: 1; }
+  .scroll-reveal.is-visible[class*="anim-"] {
+    animation: none !important;
+    opacity: 1;
+  }
+}
+
+/* Full-bleed section helper */
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/* Card hover border transition (appends to base .card-deco defined above) */
+.card-deco {
+  transition: var(--transition-shadow), transform var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-in-out);
+}
+.card-deco:hover {
+  border-color: var(--color-sage-light);
+}
+
+/* Auth forms: no lift on hover */
+.card-no-lift {
+  transform: none !important;
+}
+.card-no-lift:hover {
+  transform: none !important;
+}

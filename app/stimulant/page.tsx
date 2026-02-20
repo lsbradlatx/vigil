@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { getCachedRouteData, setCachedRouteData } from "@/lib/route-prefetch";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 type Substance = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
 
@@ -435,14 +436,15 @@ export default function StimulantPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <h1 className="font-display text-3xl font-medium text-obsidian">
-        Stimulant Optimizer
-      </h1>
-
-      <p className="text-graphite text-sm max-w-xl">
-        For awareness only; not medical advice.
-      </p>
+    <div className="container py-8 sm:py-12 space-y-8">
+      <ScrollReveal animation="fade-up">
+        <h1 className="font-display text-3xl font-medium text-obsidian">
+          Stimulant Optimizer
+        </h1>
+        <p className="text-graphite text-sm max-w-xl mt-2">
+          For awareness only; not medical advice.
+        </p>
+      </ScrollReveal>
 
       {error && (
         <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
@@ -450,6 +452,7 @@ export default function StimulantPage() {
         </div>
       )}
 
+      <ScrollReveal animation="fade-up" delay={100}>
       <section className="card-deco max-w-xl">
         <h2 className="font-display text-xl font-medium text-sage mb-4">
           Health profile
@@ -579,7 +582,9 @@ export default function StimulantPage() {
           </button>
         </form>
       </section>
+      </ScrollReveal>
 
+      <ScrollReveal animation="fade-up" delay={200}>
       <section className="card-deco max-w-xl">
         <h2 className="font-display text-xl font-medium text-sage mb-4">
           Log a dose
@@ -738,7 +743,9 @@ export default function StimulantPage() {
           </button>
         </form>
       </section>
+      </ScrollReveal>
 
+      <ScrollReveal animation="fade-up" delay={300}>
       <section className="card-deco max-w-xl">
         <h2 className="font-display text-xl font-medium text-sage mb-3">
           Recommendations
@@ -854,8 +861,10 @@ export default function StimulantPage() {
           </div>
         ) : null}
       </section>
+      </ScrollReveal>
 
       {optimizer?.eventsToday && optimizer.eventsToday.length > 0 && (
+        <ScrollReveal animation="fade-up" delay={400}>
         <section className="card-deco max-w-xl">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-display text-xl font-medium text-sage">
@@ -887,8 +896,10 @@ export default function StimulantPage() {
             </div>
           )}
         </section>
+        </ScrollReveal>
       )}
 
+      <ScrollReveal animation="fade-up" delay={500}>
       <section className="card-deco max-w-xl">
         <h2 className="font-display text-xl font-medium text-sage mb-4">
           Recent logs
@@ -921,6 +932,7 @@ export default function StimulantPage() {
           </ul>
         )}
       </section>
+      </ScrollReveal>
     </div>
   );
 }

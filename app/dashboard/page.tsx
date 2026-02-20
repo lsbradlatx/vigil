@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { getCachedRouteData, setCachedRouteData } from "@/lib/route-prefetch";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 type CalendarEvent = {
   id: string;
@@ -126,15 +127,17 @@ export default function DashboardPage() {
   }, [fetchDashboard]);
 
   return (
-    <div className="space-y-8">
-      <section className="text-center py-4">
-        <h1 className="font-display text-4xl md:text-5xl font-medium text-obsidian tracking-tight mb-2">
-          Dashboard
-        </h1>
-        <p className="text-charcoal text-lg max-w-xl mx-auto">
-          Your day, tasks, and stimulant timing in one place.
-        </p>
-      </section>
+    <div className="container py-8 sm:py-12 space-y-8">
+      <ScrollReveal animation="fade-up">
+        <section className="text-center py-4">
+          <h1 className="font-display text-4xl md:text-5xl font-medium text-obsidian tracking-tight mb-2">
+            Dashboard
+          </h1>
+          <p className="text-charcoal text-lg max-w-xl mx-auto">
+            Your day, tasks, and stimulant timing in one place.
+          </p>
+        </section>
+      </ScrollReveal>
 
       {error && (
         <div className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-linen)] text-obsidian px-4 py-2 text-sm">
@@ -148,7 +151,8 @@ export default function DashboardPage() {
         </div>
       ) : data != null ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-          <section className="card-deco md:col-span-1">
+          <ScrollReveal animation="fade-up" delay={100} className="md:col-span-1">
+          <section className="card-deco h-full">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-xl font-medium text-sage">
                 Today&apos;s schedule
@@ -179,8 +183,10 @@ export default function DashboardPage() {
               </ul>
             )}
           </section>
+          </ScrollReveal>
 
-          <section className="card-deco md:col-span-1">
+          <ScrollReveal animation="fade-up" delay={200} className="md:col-span-1">
+          <section className="card-deco h-full">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-xl font-medium text-sage">
                 Tasks due today
@@ -209,8 +215,10 @@ export default function DashboardPage() {
               </ul>
             )}
           </section>
+          </ScrollReveal>
 
-          <section className="card-deco md:col-span-1">
+          <ScrollReveal animation="fade-up" delay={300} className="md:col-span-1">
+          <section className="card-deco h-full">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-xl font-medium text-sage">
                 Stimulant optimizer
@@ -250,9 +258,11 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+          </ScrollReveal>
 
           {data.nextEventToday && data.doseForPeakAtNextEvent.length > 0 && (
-            <section className="card-deco md:col-span-2 lg:col-span-3 border-sage/40">
+            <ScrollReveal animation="fade-up" delay={400} className="md:col-span-2 lg:col-span-3">
+            <section className="card-deco border-sage/40">
               <h2 className="font-display text-lg font-medium text-sage mb-2">
                 {data.nextEventToday.title}
               </h2>
@@ -271,11 +281,13 @@ export default function DashboardPage() {
                 ))}
               </ul>
             </section>
+            </ScrollReveal>
           )}
         </div>
       ) : null}
 
       {data && (
+        <ScrollReveal animation="fade-up" delay={200}>
         <section className="card-deco max-w-2xl mx-auto flex flex-wrap items-center gap-4 text-sm">
           <span className="text-graphite">Dashboard settings:</span>
           <label className="flex items-center gap-2">
@@ -310,8 +322,10 @@ export default function DashboardPage() {
             </label>
           </div>
         </section>
+        </ScrollReveal>
       )}
 
+      <ScrollReveal animation="fade-up" delay={300}>
       <section className="flex flex-wrap gap-4 justify-center pt-4">
         <Link href="/calendar" className="btn-deco">
           Calendar
@@ -323,6 +337,7 @@ export default function DashboardPage() {
           Stimulants
         </Link>
       </section>
+      </ScrollReveal>
     </div>
   );
 }

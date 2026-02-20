@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -47,9 +48,10 @@ function VerifyEmailContent() {
   }
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="container py-8 sm:py-12 min-h-[60vh] flex items-center justify-center">
+      <ScrollReveal animation="scale-in">
       <div className="w-full max-w-md text-center">
-        <div className="card-deco p-10">
+        <div className="card-deco card-no-lift p-10">
           <div className="mb-6">
             <svg
               className="mx-auto w-16 h-16 text-sage"
@@ -120,6 +122,7 @@ function VerifyEmailContent() {
           </Link>
         </p>
       </div>
+      </ScrollReveal>
     </div>
   );
 }

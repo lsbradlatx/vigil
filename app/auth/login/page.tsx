@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, Suspense } from "react";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -50,7 +51,8 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="container py-8 sm:py-12 min-h-[60vh] flex items-center justify-center">
+      <ScrollReveal animation="scale-in">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="font-display text-4xl font-light text-obsidian mb-2">
@@ -77,7 +79,7 @@ function LoginForm() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="card-deco p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="card-deco card-no-lift p-8 space-y-5">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-charcoal mb-1.5">
               Email
@@ -126,6 +128,7 @@ function LoginForm() {
           </Link>
         </p>
       </div>
+      </ScrollReveal>
     </div>
   );
 }
