@@ -85,7 +85,7 @@
   font-size: var(--input-font-size);
   color: var(--input-text);
   outline: none;
-  cursor: text;
+  cursor: default;
   transition: border-color var(--duration-fast) var(--ease-in-out);
 }
 .input-deco::placeholder {
@@ -95,12 +95,23 @@
   border-color: var(--color-accent);
 }
 
-/* Keep text cursor visible across all form text fields */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),
-textarea,
-select {
-  cursor: text !important;
+/* Cursor behavior per form control type */
+input.input-deco[type="text"],
+input.input-deco[type="email"],
+input.input-deco[type="password"],
+input.input-deco[type="search"],
+input.input-deco[type="url"],
+input.input-deco[type="tel"],
+input.input-deco[type="number"],
+input.input-deco[type="datetime-local"],
+input.input-deco[type="time"],
+textarea.input-deco {
+  cursor: text;
   caret-color: var(--color-obsidian);
+}
+
+select.input-deco {
+  cursor: pointer;
 }
 
 /* Radios and checkboxes use site accent (sage) instead of browser blue */
