@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const dayStartParam = searchParams.get("dayStart");
     const dayEndParam = searchParams.get("dayEnd");
     const localDateParam = searchParams.get("localDate");
+    const enabledParam = searchParams.get("enabled");
 
     const mode: OptimizationMode =
       modeParam && VALID_MODES.includes(modeParam as OptimizationMode)
@@ -136,7 +137,9 @@ export async function GET(request: NextRequest) {
     const todayLoggedSubstances = Array.from(
       new Set(recentLogs.map((l) => l.substance as SubstanceType)),
     );
-    const enabledSubstances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
+    const enabledSubstances: SubstanceType[] = enabledParam
+      ? (enabledParam.split(",").filter(Boolean) as SubstanceType[])
+      : ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
     const interactions = getActiveInteractions(enabledSubstances, healthProfile, todayLoggedSubstances);
 
     const doseLogs: DoseLog[] = allLogs.map((l) => ({
@@ -144,6 +147,12 @@ export async function GET(request: NextRequest) {
       amountMg: l.amountMg,
       loggedAt: l.loggedAt,
     }));
+    const pkLookbackCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    const activeDoseLogs = doseLogs.filter(
+      (log) =>
+        enabledSubstances.includes(log.substance as SubstanceType) &&
+        log.loggedAt >= pkLookbackCutoff,
+    );
 
     const lastDoseBySubstance: Partial<Record<SubstanceType, Date>> = {};
     const lastDoseAmountMgBySubstance: Partial<Record<SubstanceType, number>> = {};
@@ -174,15 +183,15 @@ export async function GET(request: NextRequest) {
       totalMgToday,
       lastDoseAmountMgBySubstance,
       healthProfile,
-      { allLogs: doseLogs, halfLives: personalizedHalfLives, interactions },
+      { allLogs: activeDoseLogs, halfLives: personalizedHalfLives, interactions },
     );
 
-    const sleepReadiness = getSleepReadiness(doseLogs, now, personalizedHalfLives);
+    const sleepReadiness = getSleepReadiness(activeDoseLogs, now, personalizedHalfLives);
 
     // Current active levels for dashboard summary
     const currentLevels: Partial<Record<SubstanceType, number>> = {};
     for (const s of enabledSubstances) {
-      const level = getConcentrationAtTime(doseLogs, s, now, personalizedHalfLives[s]);
+      const level = getConcentrationAtTime(activeDoseLogs, s, now, personalizedHalfLives[s]);
       if (level > 0.1) currentLevels[s] = Math.round(level * 10) / 10;
     }
 

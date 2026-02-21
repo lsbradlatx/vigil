@@ -130,6 +130,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams({
         sleepBy,
         mode,
+        enabled: enabledSubstances.join(","),
         localDate,
         dayStart: dayStart.toISOString(),
         dayEnd: dayEnd.toISOString(),
@@ -151,7 +152,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [sleepBy, mode]);
+  }, [sleepBy, mode, enabledSubstances]);
 
   useEffect(() => {
     const cached = getCachedRouteData("/dashboard") as DashboardData | null;

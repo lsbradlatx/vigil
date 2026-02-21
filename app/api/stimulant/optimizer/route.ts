@@ -104,6 +104,12 @@ export async function GET(request: NextRequest) {
       amountMg: l.amountMg,
       loggedAt: l.loggedAt,
     }));
+    const pkLookbackCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    const activeDoseLogs = doseLogs.filter(
+      (log) =>
+        enabledSubstances.includes(log.substance as SubstanceType) &&
+        log.loggedAt >= pkLookbackCutoff,
+    );
 
     const tolerance = getAllToleranceLevels(doseLogs, now);
 
@@ -137,10 +143,10 @@ export async function GET(request: NextRequest) {
       totalMgToday,
       lastDoseAmountMgBySubstance,
       healthProfile,
-      { allLogs: doseLogs, halfLives: personalizedHalfLives, interactions },
+      { allLogs: activeDoseLogs, halfLives: personalizedHalfLives, interactions },
     );
 
-    const sleepReadiness = getSleepReadiness(doseLogs, now, personalizedHalfLives);
+    const sleepReadiness = getSleepReadiness(activeDoseLogs, now, personalizedHalfLives);
 
     // Concentration curves for timeline chart
     const chartStart = new Date(dayStart);
@@ -149,7 +155,7 @@ export async function GET(request: NextRequest) {
     const concentrationCurves: Record<string, { time: number; mgActive: number }[]> = {};
     for (const substance of enabledSubstances) {
       concentrationCurves[substance] = getConcentrationCurve(
-        doseLogs, substance, chartStart, chartEnd, personalizedHalfLives[substance], 10,
+        activeDoseLogs, substance, chartStart, chartEnd, personalizedHalfLives[substance], 10,
       );
     }
 

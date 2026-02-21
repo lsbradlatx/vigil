@@ -95,6 +95,14 @@
   border-color: var(--color-accent);
 }
 
+/* Keep text cursor visible across all form text fields */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),
+textarea,
+select {
+  cursor: text !important;
+  caret-color: var(--color-obsidian);
+}
+
 /* Radios and checkboxes use site accent (sage) instead of browser blue */
 input[type="radio"],
 input[type="checkbox"] {
