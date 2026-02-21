@@ -22,6 +22,7 @@ function LoginForm() {
     invalid_token: "Verification link is invalid or has already been used.",
     expired_token: "Verification link has expired. Please request a new one.",
     verification_failed: "Verification failed. Please try again.",
+    session_expired: "Your session expired after an account reset. Please sign in again.",
   };
 
   async function handleSubmit(e: React.FormEvent) {
@@ -29,8 +30,28 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const precheck = await fetch("/api/auth/login-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: normalizedEmail, password }),
+    });
+    const precheckBody = await precheck.json().catch(() => ({})) as {
+      code?: string;
+      message?: string;
+    };
+    if (!precheck.ok) {
+      if (precheckBody.code === "EMAIL_NOT_VERIFIED") {
+        setError("Your account exists, but your email is not verified yet. Go to verify-email and resend the verification link.");
+      } else {
+        setError(precheckBody.message ?? "Could not sign in. Check your details and try again.");
+      }
+      setLoading(false);
+      return;
+    }
+
     const result = await signIn("credentials", {
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       redirect: false,
     });
@@ -40,6 +61,8 @@ function LoginForm() {
     if (result?.error) {
       if (result.error.includes("EMAIL_NOT_VERIFIED")) {
         setError("Please verify your email before signing in. Check your inbox for a verification link.");
+      } else if (result.error.includes("CredentialsSignin")) {
+        setError("Sign-in failed. If this persists, your account may not exist in the current database.");
       } else {
         setError("Invalid email or password.");
       }

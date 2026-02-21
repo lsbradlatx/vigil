@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 async function wipeIfAuthorized(request: NextRequest): Promise<NextResponse> {
+  if (process.env.ALLOW_WIPE_USERS !== "true") {
+    return NextResponse.json({ error: "Wipe endpoint disabled" }, { status: 403 });
+  }
+
   const secret = process.env.WIPE_SECRET;
   if (!secret || secret.trim() === "") {
     return NextResponse.json({ error: "Wipe not configured" }, { status: 503 });

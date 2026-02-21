@@ -28,6 +28,12 @@ export function AuthHeader() {
               >
                 Sign out
               </button>
+              <Link
+                href="/account"
+                className="text-sm text-charcoal/50 hover:text-sage transition-colors"
+              >
+                Manage account
+              </Link>
             </div>
           </div>
         ) : status === "unauthenticated" ? (
