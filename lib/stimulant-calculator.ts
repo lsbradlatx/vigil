@@ -283,6 +283,7 @@ export function getNextDoseWindows(
   now: Date,
   mode: OptimizationMode,
   dosesTodayBySubstance: Record<SubstanceType, number>,
+  sleepByDate: Date,
   totalMgTodayBySubstance?: Partial<Record<SubstanceType, number>>,
   lastDoseAmountMgBySubstance?: Partial<Record<SubstanceType, number>>,
   profile?: HealthProfile | null
@@ -395,6 +396,10 @@ export function getNextDoseWindows(
       message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h.`;
     }
 
+    if (isWithinSleepToFiveWindow(windowStart, sleepByDate)) {
+      message = `Next ${config.label.toLowerCase()} suggestion falls during sleep hours. Wait until after 5:00 AM local time.`;
+    }
+
     results.push({
       substance,
       label: config.label,
@@ -408,6 +413,16 @@ export function getNextDoseWindows(
     });
   }
   return results;
+}
+
+function isWithinSleepToFiveWindow(candidate: Date, sleepByDate: Date): boolean {
+  const sleepStart = new Date(sleepByDate);
+  const fiveAm = new Date(sleepStart);
+  fiveAm.setHours(5, 0, 0, 0);
+  if (fiveAm <= sleepStart) {
+    fiveAm.setDate(fiveAm.getDate() + 1);
+  }
+  return candidate >= sleepStart && candidate < fiveAm;
 }
 
 /**

@@ -98,6 +98,7 @@ export async function GET(request: NextRequest) {
       now,
       mode,
       dosesToday,
+      sleepByDate,
       totalMgToday,
       lastDoseAmountMgBySubstance,
       healthProfile
