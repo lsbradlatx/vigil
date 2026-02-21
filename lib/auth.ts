@@ -40,12 +40,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 export async function getUserId(): Promise<string | null> {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) return null;
+  const email = session?.user?.email?.toLowerCase();
+
+  // Some older/stale JWT sessions may miss user.id; fall back to email lookup.
+  if (!userId) {
+    if (!email) return null;
+    const userByEmail = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    return userByEmail?.id ?? null;
+  }
 
   // Sessions can outlive DB resets/user deletions; validate user still exists.
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true },
   });
-  return user?.id ?? null;
+  if (user?.id) return user.id;
+
+  // If id is stale but email is still valid, recover gracefully.
+  if (email) {
+    const userByEmail = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    return userByEmail?.id ?? null;
+  }
+  return null;
 }
