@@ -118,17 +118,16 @@ export async function GET(request: NextRequest) {
     }
 
     const healthProfileRow = await prisma.userHealthProfile.findUnique({ where: { userId } });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hpRow = healthProfileRow as any;
+    const hpRow = healthProfileRow as Record<string, unknown> | null;
     const healthProfile = healthProfileRow
       ? {
-          weightKg: hpRow.weightKg ?? null,
-          heightCm: hpRow.heightCm ?? null,
-          allergies: hpRow.allergies ?? null,
-          medications: hpRow.medications ?? null,
-          sex: hpRow.sex ?? null,
-          smokingStatus: hpRow.smokingStatus ?? null,
-          birthYear: hpRow.birthYear ?? null,
+          weightKg: (hpRow?.weightKg as number | null) ?? null,
+          heightCm: (hpRow?.heightCm as number | null) ?? null,
+          allergies: (hpRow?.allergies as string | null) ?? null,
+          medications: (hpRow?.medications as string | null) ?? null,
+          sex: (hpRow?.sex as string | null) ?? null,
+          smokingStatus: (hpRow?.smokingStatus as string | null) ?? null,
+          birthYear: (hpRow?.birthYear as number | null) ?? null,
         }
       : null;
 

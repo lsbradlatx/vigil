@@ -26,16 +26,15 @@ export async function GET() {
       res.headers.set("Cache-Control", "private, max-age=60");
       return res;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const r = row as any;
+    const r = row as Record<string, unknown>;
     const res = NextResponse.json({
-      weightKg: r.weightKg ?? null,
-      heightCm: r.heightCm ?? null,
-      allergies: r.allergies ?? null,
-      medications: r.medications ?? null,
-      sex: r.sex ?? null,
-      smokingStatus: r.smokingStatus ?? null,
-      birthYear: r.birthYear ?? null,
+      weightKg: (r.weightKg as number | null) ?? null,
+      heightCm: (r.heightCm as number | null) ?? null,
+      allergies: (r.allergies as string | null) ?? null,
+      medications: (r.medications as string | null) ?? null,
+      sex: (r.sex as string | null) ?? null,
+      smokingStatus: (r.smokingStatus as string | null) ?? null,
+      birthYear: (r.birthYear as number | null) ?? null,
     });
     res.headers.set("Cache-Control", "private, max-age=60");
     return res;
@@ -133,29 +132,34 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const profileFields = (row: any) => ({
-      weightKg: row.weightKg ?? null,
-      heightCm: row.heightCm ?? null,
-      allergies: row.allergies ?? null,
-      medications: row.medications ?? null,
-      sex: row.sex ?? null,
-      smokingStatus: row.smokingStatus ?? null,
-      birthYear: row.birthYear ?? null,
+    const profileFields = (row: Record<string, unknown>) => ({
+      weightKg: (row.weightKg as number | null) ?? null,
+      heightCm: (row.heightCm as number | null) ?? null,
+      allergies: (row.allergies as string | null) ?? null,
+      medications: (row.medications as string | null) ?? null,
+      sex: (row.sex as string | null) ?? null,
+      smokingStatus: (row.smokingStatus as string | null) ?? null,
+      birthYear: (row.birthYear as number | null) ?? null,
     });
 
     const existing = await prisma.userHealthProfile.findUnique({ where: { userId } });
     if (existing) {
-      const updated = await prisma.userHealthProfile.update({ where: { userId }, data: data as any });
-      return NextResponse.json(profileFields(updated));
+      const updated = await prisma.userHealthProfile.update({
+        where: { userId },
+        data,
+      });
+      return NextResponse.json(profileFields(updated as unknown as Record<string, unknown>));
     }
     const created = await prisma.userHealthProfile.create({
       data: {
-        ...data,
+        weightKg: data.weightKg ?? null,
+        heightCm: data.heightCm ?? null,
+        allergies: data.allergies ?? null,
+        medications: data.medications ?? null,
         userId,
-      } as any,
+      },
     });
-    return NextResponse.json(profileFields(created));
+    return NextResponse.json(profileFields(created as unknown as Record<string, unknown>));
   } catch (e) {
     console.error(e);
     return NextResponse.json(
