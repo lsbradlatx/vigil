@@ -259,3 +259,42 @@ input[type="checkbox"] {
 .card-no-lift:hover {
   transform: none !important;
 }
+
+/* Global cursor baseline to prevent disappearing cursor states */
+body,
+p,
+span,
+div,
+li,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  cursor: default;
+}
+
+a,
+button,
+label,
+[role="button"],
+summary,
+select.input-deco,
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+input.input-deco[type="text"],
+input.input-deco[type="email"],
+input.input-deco[type="password"],
+input.input-deco[type="search"],
+input.input-deco[type="url"],
+input.input-deco[type="tel"],
+input.input-deco[type="number"],
+input.input-deco[type="datetime-local"],
+input.input-deco[type="time"],
+textarea.input-deco {
+  cursor: text;
+}
