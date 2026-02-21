@@ -19,15 +19,23 @@ export async function GET() {
         heightCm: null,
         allergies: null,
         medications: null,
+        sex: null,
+        smokingStatus: null,
+        birthYear: null,
       });
       res.headers.set("Cache-Control", "private, max-age=60");
       return res;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = row as any;
     const res = NextResponse.json({
-      weightKg: row.weightKg,
-      heightCm: row.heightCm,
-      allergies: row.allergies,
-      medications: row.medications,
+      weightKg: r.weightKg ?? null,
+      heightCm: r.heightCm ?? null,
+      allergies: r.allergies ?? null,
+      medications: r.medications ?? null,
+      sex: r.sex ?? null,
+      smokingStatus: r.smokingStatus ?? null,
+      birthYear: r.birthYear ?? null,
     });
     res.headers.set("Cache-Control", "private, max-age=60");
     return res;
@@ -61,11 +69,17 @@ export async function PATCH(request: NextRequest) {
       heightCm,
       allergies,
       medications,
+      sex,
+      smokingStatus,
+      birthYear,
     } = body as {
       weightKg?: number | null;
       heightCm?: number | null;
       allergies?: string | string[] | null;
       medications?: string | string[] | null;
+      sex?: string | null;
+      smokingStatus?: string | null;
+      birthYear?: number | null;
     };
 
     const data: {
@@ -73,6 +87,9 @@ export async function PATCH(request: NextRequest) {
       heightCm?: number | null;
       allergies?: string | null;
       medications?: string | null;
+      sex?: string | null;
+      smokingStatus?: string | null;
+      birthYear?: number | null;
     } = {};
 
     if (weightKg !== undefined) {
@@ -101,35 +118,44 @@ export async function PATCH(request: NextRequest) {
     }
     if (allergies !== undefined) data.allergies = parseAllergiesOrMedications(allergies);
     if (medications !== undefined) data.medications = parseAllergiesOrMedications(medications);
+    if (sex !== undefined) {
+      const valid = ["male", "female", "other"];
+      data.sex = sex && valid.includes(sex) ? sex : null;
+    }
+    if (smokingStatus !== undefined) {
+      const valid = ["non-smoker", "smoker", "former-smoker"];
+      data.smokingStatus = smokingStatus && valid.includes(smokingStatus) ? smokingStatus : null;
+    }
+    if (birthYear !== undefined) {
+      if (birthYear === null) data.birthYear = null;
+      else if (typeof birthYear === "number" && Number.isInteger(birthYear) && birthYear >= 1920 && birthYear <= new Date().getFullYear()) {
+        data.birthYear = birthYear;
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profileFields = (row: any) => ({
+      weightKg: row.weightKg ?? null,
+      heightCm: row.heightCm ?? null,
+      allergies: row.allergies ?? null,
+      medications: row.medications ?? null,
+      sex: row.sex ?? null,
+      smokingStatus: row.smokingStatus ?? null,
+      birthYear: row.birthYear ?? null,
+    });
 
     const existing = await prisma.userHealthProfile.findUnique({ where: { userId } });
     if (existing) {
-      const updated = await prisma.userHealthProfile.update({
-        where: { userId },
-        data,
-      });
-      return NextResponse.json({
-        weightKg: updated.weightKg,
-        heightCm: updated.heightCm,
-        allergies: updated.allergies,
-        medications: updated.medications,
-      });
+      const updated = await prisma.userHealthProfile.update({ where: { userId }, data: data as any });
+      return NextResponse.json(profileFields(updated));
     }
     const created = await prisma.userHealthProfile.create({
       data: {
-        weightKg: data.weightKg ?? null,
-        heightCm: data.heightCm ?? null,
-        allergies: data.allergies ?? null,
-        medications: data.medications ?? null,
+        ...data,
         userId,
-      },
+      } as any,
     });
-    return NextResponse.json({
-      weightKg: created.weightKg,
-      heightCm: created.heightCm,
-      allergies: created.allergies,
-      medications: created.medications,
-    });
+    return NextResponse.json(profileFields(created));
   } catch (e) {
     console.error(e);
     return NextResponse.json(

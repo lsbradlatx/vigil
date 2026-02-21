@@ -83,14 +83,17 @@ model AsanaToken {
 }
 
 model UserHealthProfile {
-  id          String   @id @default(cuid())
-  weightKg    Float?
-  heightCm    Float?
-  allergies   String?
-  medications String?
-  updatedAt   DateTime @updatedAt
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  weightKg       Float?
+  heightCm       Float?
+  allergies      String?
+  medications    String?
+  sex            String?  // "male" | "female" | "other"
+  smokingStatus  String?  // "non-smoker" | "smoker" | "former-smoker"
+  birthYear      Int?
+  updatedAt      DateTime @updatedAt
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Drink {

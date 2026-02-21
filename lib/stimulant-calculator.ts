@@ -12,6 +12,9 @@
 
 import type { HealthProfile } from "./health-profile";
 import { isSubstanceAllergic, getWeightBasedCaffeineMaxMg } from "./health-profile";
+import { getConcentrationAtTime, getTimeUntilBelow, SLEEP_SAFE_MG, type DoseLog } from "./pharmacokinetics";
+import type { ActiveInteraction } from "./interactions";
+import { getInteractionAdjustments } from "./interactions";
 
 export type SubstanceType = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
 
@@ -175,6 +178,12 @@ export interface NextDoseWindow {
   remainingMgToday?: number;
   /** Doses taken in last 24h for this substance (for display / over-limit styling). */
   dosesToday?: number;
+  /** Current estimated active mg from pharmacokinetic model. */
+  currentMgActive?: number;
+  /** Half-life used (may be personalized). */
+  halfLifeUsed?: number;
+  /** Interaction-adjusted effective max mg for this substance. */
+  adjustedMaxMg?: number;
 }
 
 /** Government/absolute max limits per substance (e.g. FDA-style ceilings). Exceed = show daily dosage in red. */
@@ -274,9 +283,37 @@ export function sumTotalMgLast24h(
 }
 
 /**
- * Given last dose time, mode, dose count, and total mg today, suggests next dose window (never above recommended limits).
- * When totalMgTodayBySubstance is provided, at-limit and messages use mg; spacing can be extended for larger last doses.
- * When profile is provided: allergies skip recommendation (show warning); weight can lower caffeine max mg/day.
+ * Concentration-aware options for next-dose calculation.
+ * If provided, the engine uses pharmacokinetic modeling; otherwise falls back to spacing rules.
+ */
+export interface ConcentrationOptions {
+  /** All dose logs (not just last 24h) for concentration modeling. */
+  allLogs: DoseLog[];
+  /** Personalized half-lives per substance (from health-profile.ts). */
+  halfLives?: Partial<Record<SubstanceType, number>>;
+  /** Active interactions (from interactions.ts). */
+  interactions?: ActiveInteraction[];
+}
+
+/**
+ * Threshold at which we consider blood level low enough for a new dose.
+ * Roughly 30% of a "standard" dose per substance.
+ */
+const REDOSE_THRESHOLD_MG: Record<SubstanceType, number> = {
+  CAFFEINE: 30,
+  ADDERALL: 6,
+  DEXEDRINE: 5,
+  NICOTINE: 0.3,
+};
+
+/**
+ * Concentration-aware next-dose recommendations.
+ *
+ * When `concentrationOptions` is supplied, the engine calculates current estimated
+ * blood level and uses the pharmacokinetic model to determine when levels drop
+ * below re-dose thresholds. It also applies interaction adjustments to max-mg limits.
+ *
+ * Falls back to the simpler spacing-based logic when concentration data is unavailable.
  */
 export function getNextDoseWindows(
   lastDoseBySubstance: Partial<Record<SubstanceType, Date>>,
@@ -286,19 +323,37 @@ export function getNextDoseWindows(
   sleepByDate: Date,
   totalMgTodayBySubstance?: Partial<Record<SubstanceType, number>>,
   lastDoseAmountMgBySubstance?: Partial<Record<SubstanceType, number>>,
-  profile?: HealthProfile | null
+  profile?: HealthProfile | null,
+  concentrationOptions?: ConcentrationOptions,
 ): NextDoseWindow[] {
   const results: NextDoseWindow[] = [];
   const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
+  const usePK = concentrationOptions && concentrationOptions.allLogs.length > 0;
 
   for (const substance of substances) {
     const config = SUBSTANCE_CONFIG[substance];
     const params = config[mode];
+    const hl = concentrationOptions?.halfLives?.[substance] ?? config.halfLifeHours;
+
+    // Apply interaction adjustments to max mg
+    const ixAdj = concentrationOptions?.interactions
+      ? getInteractionAdjustments(concentrationOptions.interactions, substance)
+      : { halfLifeMultiplier: 1, maxMgMultiplier: 1 };
+    const adjustedHl = hl * ixAdj.halfLifeMultiplier;
+
     const weightBasedCaffeine = substance === "CAFFEINE" ? getWeightBasedCaffeineMaxMg(profile) : null;
-    const effectiveMaxMgPerDay =
-      weightBasedCaffeine != null
-        ? Math.min(params.maxMgPerDay, weightBasedCaffeine)
-        : params.maxMgPerDay;
+    let effectiveMaxMgPerDay = weightBasedCaffeine != null
+      ? Math.min(params.maxMgPerDay, weightBasedCaffeine)
+      : params.maxMgPerDay;
+    effectiveMaxMgPerDay = Math.round(effectiveMaxMgPerDay * ixAdj.maxMgMultiplier);
+
+    // Concentration right now
+    let currentMgActive: number | undefined;
+    if (usePK) {
+      currentMgActive = getConcentrationAtTime(
+        concentrationOptions.allLogs, substance, now, adjustedHl,
+      );
+    }
 
     if (profile && isSubstanceAllergic(profile, substance)) {
       results.push({
@@ -309,11 +364,12 @@ export function getNextDoseWindows(
         message: "Not recommended: you listed an allergy. Discuss with your doctor.",
         atLimit: true,
         dosesToday: dosesTodayBySubstance[substance] ?? 0,
+        currentMgActive,
+        halfLifeUsed: adjustedHl,
       });
       continue;
     }
 
-    const lastDose = lastDoseBySubstance[substance];
     const dosesToday = dosesTodayBySubstance[substance] ?? 0;
     const totalMg = totalMgTodayBySubstance?.[substance] ?? 0;
     const lastDoseMg = lastDoseAmountMgBySubstance?.[substance];
@@ -336,64 +392,73 @@ export function getNextDoseWindows(
         maxMgPerDay: effectiveMaxMgPerDay,
         remainingMgToday: 0,
         dosesToday,
+        currentMgActive,
+        halfLifeUsed: adjustedHl,
+        adjustedMaxMg: effectiveMaxMgPerDay !== params.maxMgPerDay ? effectiveMaxMgPerDay : undefined,
       });
       continue;
     }
 
+    const lastDose = lastDoseBySubstance[substance];
     let windowStart: Date;
     let windowEnd: Date;
     let message: string;
 
-    // Spacing: base from params; extend if last dose was large (e.g. 1 extra hour per 100mg over 100 for caffeine)
-    let minSpacing = params.spacingHours;
-    if (lastDoseMg != null && lastDoseMg > 0 && substance === "CAFFEINE" && lastDoseMg > 100) {
-      const extraHours = Math.min(2, Math.floor((lastDoseMg - 100) / 100));
-      minSpacing = params.spacingHours + extraHours;
-    } else if (lastDoseMg != null && lastDoseMg > 0 && (substance === "ADDERALL" || substance === "DEXEDRINE") && lastDoseMg > 20) {
-      const extraHours = lastDoseMg > 30 ? 2 : 1;
-      minSpacing = params.spacingHours + extraHours;
-    }
+    if (usePK && currentMgActive != null && currentMgActive > REDOSE_THRESHOLD_MG[substance]) {
+      // Use PK model: find when concentration drops below redose threshold
+      const dropTime = getTimeUntilBelow(
+        concentrationOptions.allLogs, substance, now,
+        REDOSE_THRESHOLD_MG[substance], adjustedHl,
+      );
 
-    if (!lastDose) {
-      windowStart = new Date(now);
-      windowEnd = new Date(now);
-      windowEnd.setHours(windowEnd.getHours() + 1);
-      message = `No recent ${config.label.toLowerCase()} logged. You can take some now; peak in ~${config.peakHours}h.`;
-      results.push({
-        substance,
-        label: config.label,
-        windowStart: windowStart.toISOString(),
-        windowEnd: windowEnd.toISOString(),
-        message,
-        totalMgToday: totalMg || undefined,
-        maxMgPerDay: effectiveMaxMgPerDay,
-        remainingMgToday: remainingMg,
-        dosesToday,
-      });
-      continue;
-    }
-
-    const elapsedHours = (now.getTime() - lastDose.getTime()) / (60 * 60 * 1000);
-
-    if (elapsedHours < minSpacing) {
-      windowStart = new Date(lastDose);
-      windowStart.setHours(windowStart.getHours() + minSpacing);
-      windowEnd = new Date(windowStart);
-      windowEnd.setHours(windowEnd.getHours() + 1);
-      if (windowEnd < now) {
+      if (dropTime && dropTime > now) {
+        windowStart = dropTime;
+        windowEnd = new Date(dropTime.getTime() + 3_600_000);
+        message = `Estimated ${config.label.toLowerCase()} level: ~${Math.round(currentMgActive)}mg active. `
+          + `Safe to redose after ${formatTime(dropTime)} when level drops below ${REDOSE_THRESHOLD_MG[substance]}mg.`;
+      } else {
         windowStart = new Date(now);
-        windowEnd = new Date(now);
-        windowEnd.setHours(windowEnd.getHours() + 1);
+        windowEnd = new Date(now.getTime() + 3_600_000);
+        message = `Estimated ${config.label.toLowerCase()} level: ~${Math.round(currentMgActive)}mg active. OK to take now.`;
       }
-      const spacingNote = minSpacing > params.spacingHours && lastDoseMg != null
-        ? ` (${minSpacing}h after last dose of ${lastDoseMg}mg)`
-        : ` (${minSpacing}h after last dose)`;
-      message = `Next ${config.label.toLowerCase()} suggested after ${formatTime(windowStart)}${spacingNote}.`;
-    } else {
+    } else if (!lastDose) {
       windowStart = new Date(now);
-      windowEnd = new Date(now);
-      windowEnd.setHours(windowEnd.getHours() + 1);
-      message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h.`;
+      windowEnd = new Date(now.getTime() + 3_600_000);
+      const levelNote = currentMgActive != null && currentMgActive > 0
+        ? ` Current level: ~${Math.round(currentMgActive)}mg.`
+        : "";
+      message = `No recent ${config.label.toLowerCase()} logged.${levelNote} You can take some now; peak in ~${config.peakHours}h.`;
+    } else {
+      // Fallback: spacing-based logic
+      let minSpacing = params.spacingHours;
+      if (lastDoseMg != null && lastDoseMg > 0 && substance === "CAFFEINE" && lastDoseMg > 100) {
+        const extraHours = Math.min(2, Math.floor((lastDoseMg - 100) / 100));
+        minSpacing = params.spacingHours + extraHours;
+      } else if (lastDoseMg != null && lastDoseMg > 0 && (substance === "ADDERALL" || substance === "DEXEDRINE") && lastDoseMg > 20) {
+        const extraHours = lastDoseMg > 30 ? 2 : 1;
+        minSpacing = params.spacingHours + extraHours;
+      }
+
+      const elapsedHours = (now.getTime() - lastDose.getTime()) / 3_600_000;
+
+      if (elapsedHours < minSpacing) {
+        windowStart = new Date(lastDose.getTime() + minSpacing * 3_600_000);
+        windowEnd = new Date(windowStart.getTime() + 3_600_000);
+        if (windowEnd < now) {
+          windowStart = new Date(now);
+          windowEnd = new Date(now.getTime() + 3_600_000);
+        }
+        const spacingNote = minSpacing > params.spacingHours && lastDoseMg != null
+          ? ` (${minSpacing}h after last dose of ${lastDoseMg}mg)`
+          : ` (${minSpacing}h after last dose)`;
+        const levelNote = currentMgActive != null ? ` Level: ~${Math.round(currentMgActive)}mg.` : "";
+        message = `Next ${config.label.toLowerCase()} suggested after ${formatTime(windowStart)}${spacingNote}.${levelNote}`;
+      } else {
+        windowStart = new Date(now);
+        windowEnd = new Date(now.getTime() + 3_600_000);
+        const levelNote = currentMgActive != null ? ` Current level: ~${Math.round(currentMgActive)}mg.` : "";
+        message = `OK to take ${config.label.toLowerCase()} now; peak in ~${config.peakHours}h.${levelNote}`;
+      }
     }
 
     if (isWithinSleepToFiveWindow(windowStart, sleepByDate)) {
@@ -410,9 +475,40 @@ export function getNextDoseWindows(
       maxMgPerDay: effectiveMaxMgPerDay,
       remainingMgToday: remainingMg,
       dosesToday,
+      currentMgActive,
+      halfLifeUsed: adjustedHl,
+      adjustedMaxMg: effectiveMaxMgPerDay !== params.maxMgPerDay ? effectiveMaxMgPerDay : undefined,
     });
   }
   return results;
+}
+
+/**
+ * Sleep readiness: when will all stimulants drop below sleep-safe levels?
+ */
+export function getSleepReadiness(
+  logs: DoseLog[],
+  now: Date,
+  halfLives?: Partial<Record<SubstanceType, number>>,
+): { readyAt: string | null; message: string } {
+  const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
+  let latest: Date | null = null;
+
+  for (const substance of substances) {
+    const hl = halfLives?.[substance] ?? SUBSTANCE_CONFIG[substance].halfLifeHours;
+    const clearTime = getTimeUntilBelow(logs, substance, now, SLEEP_SAFE_MG[substance], hl);
+    if (clearTime && (!latest || clearTime > latest)) {
+      latest = clearTime;
+    }
+  }
+
+  if (!latest) {
+    return { readyAt: null, message: "All stimulants are at or below sleep-safe levels." };
+  }
+  return {
+    readyAt: latest.toISOString(),
+    message: `Estimated sleep readiness by ${formatTime(latest)}.`,
+  };
 }
 
 function isWithinSleepToFiveWindow(candidate: Date, sleepByDate: Date): boolean {

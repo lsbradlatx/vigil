@@ -6,12 +6,16 @@ import {
   getCutoffTimes,
   getNextDoseWindows,
   getDoseForPeakAt,
+  getSleepReadiness,
   countDosesLast24h,
   sumTotalMgLast24h,
   getGovernmentLimits,
   type SubstanceType,
   type OptimizationMode,
 } from "@/lib/stimulant-calculator";
+import { getConcentrationAtTime, type DoseLog } from "@/lib/pharmacokinetics";
+import { getAllPersonalizedHalfLives } from "@/lib/health-profile";
+import { getActiveInteractions } from "@/lib/interactions";
 
 const VALID_MODES: OptimizationMode[] = ["health", "productivity"];
 
@@ -47,14 +51,13 @@ export async function GET(request: NextRequest) {
 
     const dateStr = localDateParam ?? dayStart.toISOString().slice(0, 10);
 
-    const [localEvents, tasks, recentLogs] = await Promise.all([
+    const fourteenDaysAgo = new Date(dayStart.getTime() - 14 * 86_400_000);
+
+    const [localEvents, tasks, recentLogs, allLogs] = await Promise.all([
       prisma.calendarEvent.findMany({
         where: {
           userId,
-          AND: [
-            { start: { lte: dayEnd } },
-            { end: { gte: dayStart } },
-          ],
+          AND: [{ start: { lte: dayEnd } }, { end: { gte: dayStart } }],
         },
         orderBy: { start: "asc" },
       }),
@@ -67,6 +70,10 @@ export async function GET(request: NextRequest) {
       }),
       prisma.stimulantLog.findMany({
         where: { userId, loggedAt: { gte: new Date(dayStart.getTime() - 24 * 60 * 60 * 1000) } },
+        orderBy: { loggedAt: "desc" },
+      }),
+      prisma.stimulantLog.findMany({
+        where: { userId, loggedAt: { gte: fourteenDaysAgo } },
         orderBy: { loggedAt: "desc" },
       }),
     ]);
@@ -110,6 +117,35 @@ export async function GET(request: NextRequest) {
       sleepByDate = new Date(sleepByDate.getTime() + 24 * 60 * 60000);
     }
 
+    const healthProfileRow = await prisma.userHealthProfile.findUnique({ where: { userId } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hpRow = healthProfileRow as any;
+    const healthProfile = healthProfileRow
+      ? {
+          weightKg: hpRow.weightKg ?? null,
+          heightCm: hpRow.heightCm ?? null,
+          allergies: hpRow.allergies ?? null,
+          medications: hpRow.medications ?? null,
+          sex: hpRow.sex ?? null,
+          smokingStatus: hpRow.smokingStatus ?? null,
+          birthYear: hpRow.birthYear ?? null,
+        }
+      : null;
+
+    const personalizedHalfLives = getAllPersonalizedHalfLives(healthProfile);
+
+    const todayLoggedSubstances = Array.from(
+      new Set(recentLogs.map((l) => l.substance as SubstanceType)),
+    );
+    const enabledSubstances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
+    const interactions = getActiveInteractions(enabledSubstances, healthProfile, todayLoggedSubstances);
+
+    const doseLogs: DoseLog[] = allLogs.map((l) => ({
+      substance: l.substance,
+      amountMg: l.amountMg,
+      loggedAt: l.loggedAt,
+    }));
+
     const lastDoseBySubstance: Partial<Record<SubstanceType, Date>> = {};
     const lastDoseAmountMgBySubstance: Partial<Record<SubstanceType, number>> = {};
     for (const log of recentLogs) {
@@ -122,22 +158,12 @@ export async function GET(request: NextRequest) {
     }
     const dosesToday = countDosesLast24h(
       recentLogs.map((l) => ({ substance: l.substance, loggedAt: l.loggedAt })),
-      now
+      now,
     );
     const totalMgToday = sumTotalMgLast24h(
       recentLogs.map((l) => ({ substance: l.substance, loggedAt: l.loggedAt, amountMg: l.amountMg })),
-      now
+      now,
     );
-
-    const healthProfileRow = await prisma.userHealthProfile.findUnique({ where: { userId } });
-    const healthProfile = healthProfileRow
-      ? {
-          weightKg: healthProfileRow.weightKg,
-          heightCm: healthProfileRow.heightCm,
-          allergies: healthProfileRow.allergies,
-          medications: healthProfileRow.medications,
-        }
-      : null;
 
     const cutoffs = getCutoffTimes(sleepByDate, "health", undefined, healthProfile);
     const nextDoseWindows = getNextDoseWindows(
@@ -148,8 +174,18 @@ export async function GET(request: NextRequest) {
       sleepByDate,
       totalMgToday,
       lastDoseAmountMgBySubstance,
-      healthProfile
+      healthProfile,
+      { allLogs: doseLogs, halfLives: personalizedHalfLives, interactions },
     );
+
+    const sleepReadiness = getSleepReadiness(doseLogs, now, personalizedHalfLives);
+
+    // Current active levels for dashboard summary
+    const currentLevels: Partial<Record<SubstanceType, number>> = {};
+    for (const s of enabledSubstances) {
+      const level = getConcentrationAtTime(doseLogs, s, now, personalizedHalfLives[s]);
+      if (level > 0.1) currentLevels[s] = Math.round(level * 10) / 10;
+    }
 
     const nextEventToday = events.find((e) => new Date(e.start) > now);
     const doseForPeak = nextEventToday
@@ -166,14 +202,13 @@ export async function GET(request: NextRequest) {
       governmentLimits: getGovernmentLimits(),
       nextDoseWindows,
       nextEventToday: nextEventToday
-        ? {
-            id: nextEventToday.id,
-            title: nextEventToday.title,
-            start: nextEventToday.start,
-            end: nextEventToday.end,
-          }
+        ? { id: nextEventToday.id, title: nextEventToday.title, start: nextEventToday.start, end: nextEventToday.end }
         : null,
       doseForPeakAtNextEvent: doseForPeak,
+      // New concentration-aware data
+      sleepReadiness,
+      currentLevels,
+      interactions: interactions.filter((ix) => ix.severity === "warning" || ix.severity === "danger"),
     });
   } catch (e) {
     console.error(e);

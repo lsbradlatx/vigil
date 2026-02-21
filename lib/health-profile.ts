@@ -10,6 +10,9 @@ export interface HealthProfile {
   heightCm?: number | null;
   allergies?: string | null;
   medications?: string | null;
+  sex?: string | null;
+  smokingStatus?: string | null;
+  birthYear?: number | null;
 }
 
 /** Keywords that map to substances for allergy matching (case-insensitive). */
@@ -50,9 +53,68 @@ export function getWeightBasedCaffeineMaxMg(profile: HealthProfile | null | unde
 }
 
 /**
- * Placeholder for future third-party health API (e.g. Human API, Apple Health).
- * Would fetch height, weight, conditions, allergies and map to HealthProfile.
+ * Personalized half-life based on profile factors.
+ *
+ * Caffeine (base 5h):
+ *  - Smoker: ×0.6 (~3h) -- CYP1A2 induction (Nehlig 2018)
+ *  - Female + meds containing "contraceptive"/"birth control": ×2.0 (~10h)
+ *  - Fluvoxamine or CYP1A2 inhibitors in meds: ×3.0
+ *  - Age ≥65: ×1.3
+ *
+ * Amphetamine (base 11h): no major adjustments modeled.
+ * Nicotine (base 2h): smoker clearance already inherent; no adjustment.
  */
-// export async function fetchFromExternalHealthProvider(accessToken: string): Promise<Partial<HealthProfile> | null> {
-//   return null;
-// }
+export function getPersonalizedHalfLife(
+  substance: SubstanceType,
+  profile: HealthProfile | null | undefined,
+): number {
+  const BASE: Record<SubstanceType, number> = {
+    CAFFEINE: 5,
+    ADDERALL: 11,
+    DEXEDRINE: 11,
+    NICOTINE: 2,
+  };
+
+  let hl = BASE[substance];
+  if (!profile) return hl;
+
+  if (substance === "CAFFEINE") {
+    if (profile.smokingStatus === "smoker") {
+      hl *= 0.6;
+    }
+
+    const meds = (profile.medications ?? "").toLowerCase();
+
+    if (/\b(fluvoxamine|cyp1a2\s*inhibitor)\b/.test(meds)) {
+      hl *= 3.0;
+    } else if (
+      profile.sex === "female" &&
+      /\b(contraceptive|birth\s*control|oral\s*contraceptive)\b/.test(meds)
+    ) {
+      hl *= 2.0;
+    }
+
+    if (profile.birthYear != null) {
+      const age = new Date().getFullYear() - profile.birthYear;
+      if (age >= 65) {
+        hl *= 1.3;
+      }
+    }
+  }
+
+  return Math.round(hl * 10) / 10;
+}
+
+/**
+ * Return personalized half-lives for all substances.
+ */
+export function getAllPersonalizedHalfLives(
+  profile: HealthProfile | null | undefined,
+): Record<SubstanceType, number> {
+  const substances: SubstanceType[] = ["CAFFEINE", "ADDERALL", "DEXEDRINE", "NICOTINE"];
+  const result = {} as Record<SubstanceType, number>;
+  for (const s of substances) {
+    result[s] = getPersonalizedHalfLife(s, profile);
+  }
+  return result;
+}

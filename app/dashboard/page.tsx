@@ -46,6 +46,13 @@ type DoseForPeak = {
 
 type Substance = "CAFFEINE" | "ADDERALL" | "DEXEDRINE" | "NICOTINE";
 
+type InteractionAlert = {
+  id: string;
+  severity: "info" | "caution" | "warning" | "danger";
+  title: string;
+  description: string;
+};
+
 type DashboardData = {
   date: string;
   mode: string;
@@ -55,6 +62,9 @@ type DashboardData = {
   nextDoseWindows: NextDoseWindow[];
   nextEventToday: { id: string; title: string; start: string; end: string } | null;
   doseForPeakAtNextEvent: DoseForPeak[];
+  sleepReadiness?: { readyAt: string | null; message: string };
+  currentLevels?: Partial<Record<Substance, number>>;
+  interactions?: InteractionAlert[];
 };
 
 export default function DashboardPage() {
@@ -258,20 +268,45 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="space-y-2 text-sm">
+              {/* Current active levels */}
+              {data.currentLevels && Object.keys(data.currentLevels).length > 0 && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                  {(Object.entries(data.currentLevels) as [Substance, number][])
+                    .filter(([s]) => enabledSubstanceSet.has(s))
+                    .map(([s, mg]) => (
+                      <span key={s} className="text-charcoal">
+                        {s === "CAFFEINE" ? "Caffeine" : s === "ADDERALL" ? "Adderall" : s === "DEXEDRINE" ? "Dexedrine" : "Nicotine"}:{" "}
+                        <span className="font-medium">~{Math.round(mg)}mg</span> active
+                      </span>
+                    ))}
+                </div>
+              )}
+
+              {/* Sleep readiness */}
+              {data.sleepReadiness && (
+                <p className="text-xs text-charcoal">
+                  {data.sleepReadiness.readyAt ? `\u{1F4A4} ${data.sleepReadiness.message}` : `\u2705 ${data.sleepReadiness.message}`}
+                </p>
+              )}
+
+              {/* Interaction alerts */}
+              {data.interactions && data.interactions.length > 0 && (
+                <div className="space-y-1">
+                  {data.interactions.slice(0, 2).map((ix) => (
+                    <div key={ix.id} className={`rounded px-2 py-1.5 text-xs ${
+                      ix.severity === "danger" ? "bg-red-50 text-red-800 border border-red-300" :
+                      ix.severity === "warning" ? "bg-amber-50 text-amber-800 border border-amber-300" :
+                      "bg-yellow-50 text-yellow-800 border border-yellow-300"
+                    }`}>
+                      <span className="font-medium">{ix.title}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <p className="text-graphite">
                 Sleep by {sleepBy}
               </p>
-              <div>
-                <span className="font-medium text-charcoal">Limits:</span>
-                <ul className="mt-0.5 space-y-0.5 text-graphite">
-                  {filteredCutoffs.slice(0, 3).map((c) => (
-                    <li key={c.substance}>{c.message}</li>
-                  ))}
-                  {filteredCutoffs.length === 0 && (
-                    <li>No selected stimulant recommendations.</li>
-                  )}
-                </ul>
-              </div>
               <div>
                 <span className="font-medium text-charcoal">Next dose:</span>
                 <ul className="mt-0.5 space-y-0.5">
@@ -280,8 +315,8 @@ export default function DashboardPage() {
                       key={w.substance}
                       className={w.atLimit ? "text-amber-700" : "text-graphite"}
                     >
-                      {w.label}: {w.message.slice(0, 50)}
-                      {w.message.length > 50 ? "…" : ""}
+                      {w.label}: {w.message.slice(0, 60)}
+                      {w.message.length > 60 ? "\u2026" : ""}
                     </li>
                   ))}
                   {filteredNextDoseWindows.length === 0 && (
