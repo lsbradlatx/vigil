@@ -36,6 +36,13 @@
   color: var(--btn-secondary-text-hover);
   transform: translateY(-1px);
 }
+.btn-deco:active {
+  transform: translateY(0);
+}
+.btn-deco:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(109, 115, 85, 0.28);
+}
 
 .btn-deco-primary {
   display: inline-flex;
@@ -61,6 +68,13 @@
   background-color: var(--btn-accent-bg-hover);
   transform: translateY(-1px);
 }
+.btn-deco-primary:active {
+  transform: translateY(0);
+}
+.btn-deco-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(109, 115, 85, 0.34);
+}
 
 .card-deco {
   background-color: var(--card-bg);
@@ -72,7 +86,7 @@
 }
 .card-deco:hover {
   box-shadow: var(--card-shadow-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .input-deco {
@@ -93,6 +107,10 @@
 }
 .input-deco:focus {
   border-color: var(--color-accent);
+}
+.input-deco:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(109, 115, 85, 0.22);
 }
 
 /* Cursor behavior per form control type */

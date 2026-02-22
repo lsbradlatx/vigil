@@ -356,7 +356,7 @@ export default function CalendarPage() {
       </ScrollReveal>
 
       {showForm && (
-        <div className="fixed inset-0 bg-obsidian/40 flex items-center justify-center z-20 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-20 p-4">
           <div className="card-deco max-w-md w-full shadow-xl">
             <h2 className="font-display text-xl font-medium text-obsidian mb-4">
               {isGoogleEvent(selectedEvent) ? "Google Calendar event" : selectedEvent ? "Edit event" : "New event"}
@@ -415,7 +415,7 @@ export default function CalendarPage() {
                   <button
                     type="button"
                     onClick={deleteEvent}
-                    className="btn btn--secondary text-obsidian hover:!bg-obsidian hover:!text-cream"
+                    className="btn btn--secondary text-obsidian hover:!bg-[var(--color-bg-dark)] hover:!text-[var(--color-text-on-dark)]"
                     disabled={saving}
                   >
                     Delete

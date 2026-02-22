@@ -210,6 +210,94 @@
 
   --divider-color:      var(--color-parchment);
   --divider-width:      1px;
+
+  /* Native form controls */
+  color-scheme: light;
+}
+
+/* ============================================================
+   DARK THEME (token overrides)
+   Applied when ThemeProvider sets: <html data-theme="dark">
+   ============================================================ */
+
+:root[data-theme="dark"] {
+  /* Native controls */
+  color-scheme: dark;
+
+  /* Override base palette to keep existing Tailwind classes theme-aware */
+  --color-cream:          #141315;
+  --color-linen:          #19181b;
+  --color-parchment:      #232226;
+  --color-ash:            #9b958c;
+  --color-graphite:       #b3ada3;
+  --color-charcoal:       #d8d2c8;
+  --color-obsidian:       #F2F0EA;
+
+  --color-sage-light:     #2f3528;
+  --color-sage-muted:     #9b958c;
+  --color-forest-green:   #0f0e10;
+
+  /* Semantic surfaces */
+  --color-bg:             #141315;
+  --color-bg-alt:         #19181b;
+  --color-bg-dark:        #0f0e10;
+  --color-surface:        #1b1a1d;
+  --color-surface-muted:  #232226;
+
+  /* Text */
+  --color-text-primary:   #F2F0EA;
+  --color-text-secondary: rgba(242, 240, 234, 0.78);
+  --color-text-muted:     rgba(242, 240, 234, 0.60);
+  --color-text-on-dark:   #F2F0EA;
+
+  /* Borders */
+  --color-border:         rgba(242, 240, 234, 0.10);
+  --color-border-strong:  rgba(242, 240, 234, 0.18);
+  --color-divider:        rgba(242, 240, 234, 0.10);
+
+  /* Accent */
+  --color-accent-hover:   #7f8664;
+
+  /* Shadows (subtle in dark; rely more on borders) */
+  --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-sm:  0 1px 6px rgba(0, 0, 0, 0.40);
+  --shadow-md:  0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg:  0 14px 40px rgba(0, 0, 0, 0.50);
+  --shadow-xl:  0 24px 70px rgba(0, 0, 0, 0.55);
+  --shadow-accent: 0 16px 56px rgba(109, 115, 85, 0.22), 0 6px 14px rgba(0, 0, 0, 0.35);
+
+  /* Component tokens */
+  --nav-bg:             rgba(20, 19, 21, 0.78);
+  --nav-border:         1px solid rgba(242, 240, 234, 0.10);
+  --nav-link-color:     rgba(242, 240, 234, 0.70);
+  --nav-link-hover:     #F2F0EA;
+
+  --btn-primary-bg:         #F2F0EA;
+  --btn-primary-text:       #141315;
+  --btn-primary-bg-hover:   rgba(242, 240, 234, 0.86);
+
+  --btn-secondary-text:     rgba(242, 240, 234, 0.92);
+  --btn-secondary-border:   1px solid rgba(242, 240, 234, 0.22);
+  --btn-secondary-bg-hover: rgba(242, 240, 234, 0.10);
+  --btn-secondary-text-hover: #F2F0EA;
+
+  --btn-accent-bg:          var(--color-sage);
+  --btn-accent-text:        #F2F0EA;
+  --btn-accent-bg-hover:    var(--color-accent-hover);
+
+  --card-bg:            var(--color-surface);
+  --card-bg-alt:        rgba(242, 240, 234, 0.04);
+  --card-border:        1px solid rgba(242, 240, 234, 0.12);
+  --card-shadow:        var(--shadow-sm);
+  --card-shadow-hover:  var(--shadow-md);
+
+  --input-bg:           rgba(242, 240, 234, 0.03);
+  --input-border:       1px solid rgba(242, 240, 234, 0.14);
+  --input-text:         #F2F0EA;
+  --input-placeholder:  rgba(242, 240, 234, 0.45);
+
+  --badge-bg:           rgba(242, 240, 234, 0.06);
+  --badge-text:         rgba(242, 240, 234, 0.78);
 }
 
 /* Base */

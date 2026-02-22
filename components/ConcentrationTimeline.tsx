@@ -171,15 +171,15 @@ export function ConcentrationTimeline({
         {mgLabels.map((l, i) => (
           <g key={`mg-${i}`}>
             <line x1={PADDING.left} x2={SVG_WIDTH - PADDING.right} y1={l.y} y2={l.y}
-              stroke="#e5e0d8" strokeWidth={0.5} />
-            <text x={PADDING.left - 6} y={l.y + 4} textAnchor="end" fontSize={10} fill="#999081">{l.label}</text>
+              stroke="var(--color-border)" strokeWidth={0.6} />
+            <text x={PADDING.left - 6} y={l.y + 4} textAnchor="end" fontSize={10} fill="var(--color-text-muted)">{l.label}</text>
           </g>
         ))}
         {timeLabels.map((l, i) => (
           <g key={`t-${i}`}>
             <line x1={l.x} x2={l.x} y1={PADDING.top} y2={PADDING.top + CHART_H}
-              stroke="#e5e0d8" strokeWidth={0.5} />
-            <text x={l.x} y={SVG_HEIGHT - 8} textAnchor="middle" fontSize={10} fill="#999081">{l.label}</text>
+              stroke="var(--color-border)" strokeWidth={0.6} />
+            <text x={l.x} y={SVG_HEIGHT - 8} textAnchor="middle" fontSize={10} fill="var(--color-text-muted)">{l.label}</text>
           </g>
         ))}
 
@@ -190,8 +190,8 @@ export function ConcentrationTimeline({
             y={PADDING.top}
             width={Math.max(0, SVG_WIDTH - PADDING.right - xScale(sleepTime))}
             height={CHART_H}
-            fill="#222123"
-            opacity={0.08}
+            fill="var(--color-bg-dark)"
+            opacity={0.18}
           />
         )}
 
@@ -226,7 +226,7 @@ export function ConcentrationTimeline({
           return (
             <circle key={`dose-${i}`}
               cx={xScale(m.time)} cy={yScale(m.mg > 0 ? m.mg : 0) - 2}
-              r={4} fill={SUBSTANCE_COLORS[m.substance]} stroke="#fff" strokeWidth={1.5}
+              r={4} fill={SUBSTANCE_COLORS[m.substance]} stroke="var(--color-surface)" strokeWidth={1.5}
             />
           );
         })}
@@ -237,16 +237,16 @@ export function ConcentrationTimeline({
             <line
               x1={hoverInfo.x} x2={hoverInfo.x}
               y1={PADDING.top} y2={PADDING.top + CHART_H}
-              stroke="#222123" strokeWidth={0.8} opacity={0.4}
+              stroke="var(--color-text-muted)" strokeWidth={0.9} opacity={0.55}
             />
             <rect
               x={Math.min(hoverInfo.x + 8, SVG_WIDTH - 150)} y={PADDING.top + 4}
               width={140} height={16 + hoverInfo.vals.length * 16}
-              rx={4} fill="#222123" opacity={0.85}
+              rx={6} fill="var(--color-bg-dark)" opacity={0.92}
             />
             <text
               x={Math.min(hoverInfo.x + 14, SVG_WIDTH - 144)} y={PADDING.top + 16}
-              fontSize={10} fill="#fff"
+              fontSize={10} fill="var(--color-text-on-dark)"
             >
               {hoverInfo.time.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
             </text>
@@ -265,7 +265,7 @@ export function ConcentrationTimeline({
         {/* Y-axis label */}
         <text
           x={10} y={PADDING.top + CHART_H / 2}
-          textAnchor="middle" fontSize={10} fill="#999081"
+          textAnchor="middle" fontSize={10} fill="var(--color-text-muted)"
           transform={`rotate(-90, 10, ${PADDING.top + CHART_H / 2})`}
         >
           mg active
