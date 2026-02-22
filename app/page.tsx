@@ -156,17 +156,17 @@ export default function LandingPage() {
       </section>
 
       {/* ── Integrations ── */}
-      <section className="bg-[var(--color-obsidian)] py-20 md:py-24">
+      <section className="bg-[var(--color-bg-dark)] py-20 md:py-24">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <ScrollReveal animation="fade-in">
-            <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--color-cream)] mb-4">
+            <h2 className="font-display text-2xl md:text-3xl font-medium text-[var(--color-text-on-dark)] mb-4">
               Connects to your workflow
             </h2>
-            <p className="text-[var(--color-cream)]/70 text-sm md:text-base max-w-lg mx-auto leading-relaxed">
+            <p className="text-[var(--color-text-on-dark)] opacity-80 text-sm md:text-base max-w-lg mx-auto leading-relaxed">
               Pull in events from{" "}
-              <span className="font-medium text-[var(--color-sage-light)]">Google Calendar</span>{" "}
+              <span className="font-medium text-sage">Google Calendar</span>{" "}
               and tasks from{" "}
-              <span className="font-medium text-[var(--color-sage-light)]">Asana</span>{" "}
+              <span className="font-medium text-sage">Asana</span>{" "}
               — or use Vigil on its own. Everything syncs automatically once connected.
             </p>
           </ScrollReveal>
