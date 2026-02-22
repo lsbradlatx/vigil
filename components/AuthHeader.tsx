@@ -31,8 +31,8 @@ export function AuthHeader() {
   const themeLabel = theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light";
 
   return (
-    <header className="nav">
-      <div className="container flex items-center justify-between gap-3 h-full min-h-[72px]">
+    <header className="nav overflow-visible">
+      <div className="container flex items-center justify-between gap-3 h-full min-h-[72px] overflow-visible">
         <a
           href="/"
           className="font-display text-2xl font-medium text-obsidian tracking-tight hover:text-sage transition-colors"
@@ -57,7 +57,7 @@ export function AuthHeader() {
                   {themeLabel}
                 </button>
                 {themeOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-50 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-[500] overflow-hidden">
                     <ThemeOption label="System" active={theme === "system"} onClick={() => setAndClose("system")} />
                     <ThemeOption label="Light" active={theme === "light"} onClick={() => setAndClose("light")} />
                     <ThemeOption label="Dark" active={theme === "dark"} onClick={() => setAndClose("dark")} />
@@ -94,7 +94,7 @@ export function AuthHeader() {
                 {themeLabel}
               </button>
               {themeOpen && (
-                <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-[500] overflow-hidden">
                   <ThemeOption label="System" active={theme === "system"} onClick={() => setAndClose("system")} />
                   <ThemeOption label="Light" active={theme === "light"} onClick={() => setAndClose("light")} />
                   <ThemeOption label="Dark" active={theme === "dark"} onClick={() => setAndClose("dark")} />
