@@ -41,7 +41,7 @@ export function AuthHeader() {
         </a>
 
         {status === "authenticated" && session?.user ? (
-          <div className="flex items-center gap-3 min-w-0 overflow-x-auto">
+          <div className="flex items-center gap-3 min-w-0 overflow-visible">
             <Nav />
             <div className="flex items-center gap-3 ml-2 pl-3 border-l border-[var(--color-border)] whitespace-nowrap">
               <div ref={themeRef} className="relative">
