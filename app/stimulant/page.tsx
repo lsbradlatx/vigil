@@ -500,10 +500,10 @@ export default function StimulantPage() {
     : [];
 
   return (
-    <div className="container py-8 sm:py-12 space-y-8">
+    <div className="container py-[clamp(2rem,4vw,3rem)] space-y-8">
       {/* Header */}
       <ScrollReveal animation="fade-up">
-        <h1 className="font-display text-3xl font-medium text-obsidian">
+        <h1 className="font-display text-[clamp(1.9rem,3.8vw,2.4rem)] font-medium text-obsidian">
           Stimulant Optimizer
         </h1>
         <p className="text-graphite text-sm max-w-xl mt-2">
@@ -775,12 +775,12 @@ export default function StimulantPage() {
                 </div>
               </div>
               {profileUnits === "imperial" ? (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
                   <div>
                     <label className="block text-sm font-medium text-obsidian mb-1">Weight (lb)</label>
                     <input type="number" min={66} max={661} step={0.5} value={profileWeight} onChange={(e) => setProfileWeight(e.target.value)} placeholder="e.g. 154" className="input-deco w-full" />
                   </div>
-                  <div className="col-span-2 grid grid-cols-2 gap-2">
+                  <div className="col-span-full grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
                     <div>
                       <label className="block text-sm font-medium text-obsidian mb-1">Height (ft)</label>
                       <input type="number" min={3} max={8} step={1} value={profileHeightFt} onChange={(e) => setProfileHeightFt(e.target.value)} placeholder="5" className="input-deco w-full" />
@@ -792,7 +792,7 @@ export default function StimulantPage() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
                   <div>
                     <label className="block text-sm font-medium text-obsidian mb-1">Weight (kg)</label>
                     <input type="number" min={30} max={300} step={0.1} value={profileWeight} onChange={(e) => setProfileWeight(e.target.value)} placeholder="e.g. 70" className="input-deco w-full" />
@@ -805,7 +805,7 @@ export default function StimulantPage() {
               )}
 
               {/* New profile fields */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
                 <div>
                   <label className="block text-sm font-medium text-obsidian mb-1">Sex</label>
                   <select value={profileSex} onChange={(e) => setProfileSex(e.target.value)} className="input-deco w-full">
@@ -888,7 +888,7 @@ export default function StimulantPage() {
                         {TREND_ICONS[stats.trend]} {stats.trend}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm text-obsidian/80 mb-2">
+                    <div className="grid gap-3 text-sm text-obsidian/80 mb-2 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
                       <div>
                         <span className="text-graphite text-xs block">7-day avg</span>
                         <span className="font-medium">{stats.avg7d} mg/day</span>

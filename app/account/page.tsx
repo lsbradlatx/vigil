@@ -36,10 +36,10 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="container py-8 sm:py-12">
+    <div className="container py-[clamp(2rem,4vw,3rem)]">
       <div className="max-w-2xl mx-auto space-y-6">
         <section className="text-center py-4">
-          <h1 className="font-display text-4xl md:text-5xl font-medium text-obsidian tracking-tight mb-2">
+          <h1 className="font-display text-[clamp(2.1rem,4.8vw,3.2rem)] font-medium text-obsidian tracking-tight mb-2">
             Manage Account
           </h1>
           <p className="text-charcoal text-lg max-w-xl mx-auto">

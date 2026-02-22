@@ -225,24 +225,24 @@
   color-scheme: dark;
 
   /* Override base palette to keep existing Tailwind classes theme-aware */
-  --color-cream:          #141315;
-  --color-linen:          #19181b;
-  --color-parchment:      #232226;
+  --color-cream:          #191511;
+  --color-linen:          #2a221b;
+  --color-parchment:      #3e3329;
   --color-ash:            #9b958c;
   --color-graphite:       #b3ada3;
   --color-charcoal:       #d8d2c8;
   --color-obsidian:       #F2F0EA;
 
-  --color-sage-light:     #2f3528;
+  --color-sage-light:     #56674a;
   --color-sage-muted:     #9b958c;
-  --color-forest-green:   #0f0e10;
+  --color-forest-green:   #14110e;
 
   /* Semantic surfaces */
-  --color-bg:             #141315;
-  --color-bg-alt:         #19181b;
-  --color-bg-dark:        #0f0e10;
-  --color-surface:        #1b1a1d;
-  --color-surface-muted:  #232226;
+  --color-bg:             #191511;
+  --color-bg-alt:         #2a221b;
+  --color-bg-dark:        #120f0c;
+  --color-surface:        #312820;
+  --color-surface-muted:  #40352b;
 
   /* Text */
   --color-text-primary:   #F2F0EA;
@@ -267,7 +267,7 @@
   --shadow-accent: 0 16px 56px rgba(109, 115, 85, 0.22), 0 6px 14px rgba(0, 0, 0, 0.35);
 
   /* Component tokens */
-  --nav-bg:             rgba(20, 19, 21, 0.78);
+  --nav-bg:             rgba(25, 21, 17, 0.82);
   --nav-border:         1px solid rgba(242, 240, 234, 0.10);
   --nav-link-color:     rgba(242, 240, 234, 0.70);
   --nav-link-hover:     #F2F0EA;
@@ -286,7 +286,7 @@
   --btn-accent-bg-hover:    var(--color-accent-hover);
 
   --card-bg:            var(--color-surface);
-  --card-bg-alt:        rgba(242, 240, 234, 0.04);
+  --card-bg-alt:        rgba(242, 240, 234, 0.10);
   --card-border:        1px solid rgba(242, 240, 234, 0.12);
   --card-shadow:        var(--shadow-sm);
   --card-shadow-hover:  var(--shadow-md);

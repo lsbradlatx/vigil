@@ -271,11 +271,11 @@ export default function TodosPage() {
   const tasksDueToday = tasks.filter((t) => t.dueDate && format(new Date(t.dueDate), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") && !t.completed);
 
   return (
-    <div className="container py-8 sm:py-12">
+    <div className="container py-[clamp(2rem,4vw,3rem)]">
     <div className="max-w-2xl mx-auto space-y-6">
       <ScrollReveal animation="fade-up">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-medium text-obsidian">To-dos</h1>
+      <div className="flex items-center justify-between gap-4 min-w-0 overflow-x-auto whitespace-nowrap">
+        <h1 className="font-display text-[clamp(1.9rem,3.8vw,2.4rem)] font-medium text-obsidian">To-dos</h1>
         <div className="flex items-center gap-2">
           {asanaConnected ? (
             <button
@@ -305,7 +305,7 @@ export default function TodosPage() {
           <p className="text-graphite text-sm mb-3">
             Create a Personal Access Token in Asana (Settings → Apps → Developer apps → Personal access tokens), then paste it below.
           </p>
-          <form onSubmit={connectAsana} className="flex flex-col sm:flex-row gap-2">
+          <form onSubmit={connectAsana} className="flex flex-wrap items-center gap-2">
             <input
               type="password"
               value={asanaToken}
@@ -351,7 +351,7 @@ export default function TodosPage() {
       )}
 
       <ScrollReveal animation="fade-up" delay={100}>
-      <form onSubmit={addTask} className="flex flex-col sm:flex-row gap-2 flex-wrap">
+      <form onSubmit={addTask} className="flex flex-wrap items-center gap-2">
         <input
           type="text"
           value={newTitle}
@@ -364,7 +364,7 @@ export default function TodosPage() {
           type="date"
           value={newDueDate}
           onChange={(e) => setNewDueDate(e.target.value)}
-          className="input-deco w-full sm:w-auto"
+          className="input-deco w-[180px]"
           disabled={submitting}
         />
         <button type="submit" className="btn-deco-primary whitespace-nowrap" disabled={submitting}>

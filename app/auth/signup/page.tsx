@@ -54,11 +54,11 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="container py-8 sm:py-12 min-h-[60vh] flex items-center justify-center">
+    <div className="container py-[clamp(2rem,4vw,3rem)] min-h-[60vh] flex items-center justify-center">
       <ScrollReveal animation="scale-in">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="font-display text-4xl font-light text-obsidian mb-2">
+          <h1 className="font-display text-[clamp(2rem,4.4vw,2.7rem)] font-light text-obsidian mb-2">
             Create your account
           </h1>
           <p className="text-charcoal/70">Join Vigil to start optimizing your day</p>

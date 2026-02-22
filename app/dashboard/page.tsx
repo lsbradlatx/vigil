@@ -165,10 +165,10 @@ export default function DashboardPage() {
   }, [fetchDashboard]);
 
   return (
-    <div className="container py-8 sm:py-12 space-y-8">
+    <div className="container py-[clamp(2rem,4vw,3rem)] space-y-8">
       <ScrollReveal animation="fade-up">
         <section className="text-center py-4">
-          <h1 className="font-display text-4xl md:text-5xl font-medium text-obsidian tracking-tight mb-2">
+          <h1 className="font-display text-[clamp(2.1rem,4.8vw,3.2rem)] font-medium text-obsidian tracking-tight mb-2">
             Dashboard
           </h1>
           <p className="text-charcoal text-lg max-w-xl mx-auto">
@@ -188,7 +188,7 @@ export default function DashboardPage() {
           Loading your day…
         </div>
       ) : data != null ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+        <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))] max-w-6xl mx-auto">
           <ScrollReveal animation="fade-up" delay={100} className="md:col-span-1">
           <section className="card-deco h-full">
             <div className="flex items-center justify-between mb-3">
@@ -330,7 +330,7 @@ export default function DashboardPage() {
           </ScrollReveal>
 
           {data.nextEventToday && filteredDoseForPeak.length > 0 && (
-            <ScrollReveal animation="fade-up" delay={400} className="md:col-span-2 lg:col-span-3">
+            <ScrollReveal animation="fade-up" delay={400} className="[grid-column:1/-1]">
             <section className="card-deco border-sage/40">
               <h2 className="font-display text-lg font-medium text-sage mb-2">
                 {data.nextEventToday.title}

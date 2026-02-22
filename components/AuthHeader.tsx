@@ -32,7 +32,7 @@ export function AuthHeader() {
 
   return (
     <header className="nav">
-      <div className="container flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 h-full">
+      <div className="container flex items-center justify-between gap-3 h-full min-h-[72px]">
         <a
           href="/"
           className="font-display text-2xl font-medium text-obsidian tracking-tight hover:text-sage transition-colors"
@@ -41,9 +41,9 @@ export function AuthHeader() {
         </a>
 
         {status === "authenticated" && session?.user ? (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 min-w-0 overflow-x-auto">
             <Nav />
-            <div className="flex items-center gap-3 ml-2 pl-3 border-l border-[var(--color-border)]">
+            <div className="flex items-center gap-3 ml-2 pl-3 border-l border-[var(--color-border)] whitespace-nowrap">
               <div ref={themeRef} className="relative">
                 <button
                   type="button"
@@ -80,7 +80,7 @@ export function AuthHeader() {
             </div>
           </div>
         ) : status === "unauthenticated" ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 whitespace-nowrap">
             <div ref={themeRef} className="relative">
               <button
                 type="button"

@@ -48,7 +48,7 @@ function VerifyEmailContent() {
   }
 
   return (
-    <div className="container py-8 sm:py-12 min-h-[60vh] flex items-center justify-center">
+    <div className="container py-[clamp(2rem,4vw,3rem)] min-h-[60vh] flex items-center justify-center">
       <ScrollReveal animation="scale-in">
       <div className="w-full max-w-md text-center">
         <div className="card-deco card-no-lift p-10">
@@ -68,7 +68,7 @@ function VerifyEmailContent() {
             </svg>
           </div>
 
-          <h1 className="font-display text-3xl font-light text-obsidian mb-3">
+          <h1 className="font-display text-[clamp(1.8rem,3.8vw,2.25rem)] font-light text-obsidian mb-3">
             Check your email
           </h1>
 

@@ -268,10 +268,10 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="container py-8 sm:py-12 space-y-6">
+    <div className="container py-[clamp(2rem,4vw,3rem)] space-y-6">
       <ScrollReveal animation="fade-up">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-medium text-obsidian">Calendar</h1>
+      <div className="flex items-center justify-between gap-4 min-w-0 overflow-x-auto whitespace-nowrap">
+        <h1 className="font-display text-[clamp(1.9rem,3.8vw,2.4rem)] font-medium text-obsidian">Calendar</h1>
         <div className="flex items-center gap-2">
           {googleConnected ? (
             <button

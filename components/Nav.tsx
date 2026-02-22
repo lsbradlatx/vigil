@@ -49,7 +49,7 @@ export function Nav() {
   }, [open]);
 
   return (
-    <nav className="flex flex-wrap items-center gap-1">
+    <nav className="flex items-center gap-1 whitespace-nowrap">
       <Link
         href="/"
         className={`nav__link px-3 py-2 rounded-full ${
