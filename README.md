@@ -4,6 +4,10 @@ Vigil is a full-stack productivity app that unifies calendar planning, task mana
 
 It is built with Next.js (App Router), TypeScript, Prisma, and PostgreSQL, with account-based data ownership, email verification, and optional Google Calendar/Asana integrations.
 
+## Live Demo
+
+https://www.vigiltracker.net
+
 ## Features
 
 - Account system with email verification and protected routes
