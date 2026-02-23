@@ -12,6 +12,11 @@ export function AuthHeader() {
 
   const [themeOpen, setThemeOpen] = useState(false);
   const themeRef = useRef<HTMLDivElement>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
+  const [themeMenuPos, setThemeMenuPos] = useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
 
   useEffect(() => {
     if (!themeOpen) return;
@@ -20,6 +25,27 @@ export function AuthHeader() {
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
+  }, [themeOpen]);
+
+  useEffect(() => {
+    if (!themeOpen) return;
+
+    const updateMenuPosition = () => {
+      const rect = themeButtonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const menuWidth = 176; // w-44
+      const left = Math.max(8, Math.min(window.innerWidth - menuWidth - 8, rect.right - menuWidth));
+      const top = rect.bottom + 6;
+      setThemeMenuPos({ top, left });
+    };
+
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
   }, [themeOpen]);
 
   const setAndClose = (t: ThemePreference) => {
@@ -46,6 +72,7 @@ export function AuthHeader() {
             <div className="flex items-center gap-3 ml-2 pl-3 border-l border-[var(--color-border)] whitespace-nowrap">
               <div ref={themeRef} className="relative">
                 <button
+                  ref={themeButtonRef}
                   type="button"
                   onClick={() => setThemeOpen((v) => !v)}
                   className="text-sm text-charcoal/70 hover:text-sage transition-colors px-2 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]"
@@ -57,7 +84,10 @@ export function AuthHeader() {
                   {themeLabel}
                 </button>
                 {themeOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-[500] overflow-hidden">
+                  <div
+                    className="fixed w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-[500] overflow-hidden"
+                    style={{ top: `${themeMenuPos.top}px`, left: `${themeMenuPos.left}px` }}
+                  >
                     <ThemeOption label="System" active={theme === "system"} onClick={() => setAndClose("system")} />
                     <ThemeOption label="Light" active={theme === "light"} onClick={() => setAndClose("light")} />
                     <ThemeOption label="Dark" active={theme === "dark"} onClick={() => setAndClose("dark")} />
@@ -83,6 +113,7 @@ export function AuthHeader() {
           <div className="flex items-center gap-3 whitespace-nowrap">
             <div ref={themeRef} className="relative">
               <button
+                ref={themeButtonRef}
                 type="button"
                 onClick={() => setThemeOpen((v) => !v)}
                 className="nav__link px-3 py-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]"
@@ -94,7 +125,10 @@ export function AuthHeader() {
                 {themeLabel}
               </button>
               {themeOpen && (
-                <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-[500] overflow-hidden">
+                <div
+                  className="fixed w-44 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg z-[500] overflow-hidden"
+                  style={{ top: `${themeMenuPos.top}px`, left: `${themeMenuPos.left}px` }}
+                >
                   <ThemeOption label="System" active={theme === "system"} onClick={() => setAndClose("system")} />
                   <ThemeOption label="Light" active={theme === "light"} onClick={() => setAndClose("light")} />
                   <ThemeOption label="Dark" active={theme === "dark"} onClick={() => setAndClose("dark")} />
