@@ -24,16 +24,16 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Vigil",
   description: "Vigil — scheduling, productivity, and focus. Optimize your stimulant timing.",
-  manifest: "/site.webmanifest",
+  manifest: "/site.webmanifest?v=3",
   icons: {
     icon: [
-      { url: "/logo-icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+      { url: "/logo-icon.svg?v=3", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=3", sizes: "any" },
+      { url: "/icon-192.png?v=3", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png?v=3", type: "image/png", sizes: "512x512" },
     ],
-    shortcut: [{ url: "/favicon.ico", sizes: "any" }],
-    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
+    shortcut: [{ url: "/favicon.ico?v=3", sizes: "any" }],
+    apple: [{ url: "/apple-touch-icon.png?v=3", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
     title: "Vigil",

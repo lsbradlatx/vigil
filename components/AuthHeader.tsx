@@ -12,7 +12,7 @@ export function AuthHeader() {
 
   const themeIcon = resolvedTheme === "dark" ? "☾" : "☼";
   const themeLabel = theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light";
-  const logoSrc = resolvedTheme === "dark" ? "/logo-wordmark-dark.png" : "/logo-wordmark-light.png";
+  const logoSrc = resolvedTheme === "dark" ? "/logo-wordmark-dark.svg" : "/logo-wordmark-light.svg";
 
   return (
     <header className="nav overflow-visible">
