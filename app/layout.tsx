@@ -24,6 +24,28 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Vigil",
   description: "Vigil — scheduling, productivity, and focus. Optimize your stimulant timing.",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      { url: "/logo-icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: [{ url: "/favicon.ico", sizes: "any" }],
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
+  },
+  openGraph: {
+    title: "Vigil",
+    description: "Vigil — scheduling, productivity, and focus. Optimize your stimulant timing.",
+    images: [{ url: "/logo-wordmark-light.svg", width: 640, height: 180, alt: "Vigil" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vigil",
+    description: "Vigil — scheduling, productivity, and focus. Optimize your stimulant timing.",
+    images: ["/logo-wordmark-light.svg"],
+  },
 };
 
 export default function RootLayout({

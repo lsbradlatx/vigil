@@ -263,3 +263,19 @@ These tell Railway *how* to build and run your app.
 - **App opens but shows an error** — Usually a missing or wrong variable (e.g. `DATABASE_URL` or Google keys). Double-check the **Variables** tab for your app service.
 
 When you’re ready to use your GoDaddy domain, we can do a separate guide for connecting it to this Railway app.
+
+---
+
+# Logo/Favicon Update Checklist (after branding changes)
+
+Browsers cache favicons very aggressively, so icon changes may not appear immediately even after a successful deploy.
+
+1. If you change logo/icon assets, prefer versioned filenames (example: `logo-wordmark-light-v2.svg`, `icon-192-v2.png`, `icon-512-v2.png`, `favicon-v2.ico`) and update references in `app/layout.tsx` and `public/site.webmanifest`.
+2. Push and deploy normally (`git add .`, `git commit`, `git push`), then wait for Railway deploy to finish.
+3. Open your site in a new private/incognito window and verify:
+   - header logo is updated
+   - browser tab icon is updated
+4. If you still see old icons, hard refresh:
+   - Windows: `Ctrl + F5`
+   - Mac: `Cmd + Shift + R`
+5. If needed, clear cached site data for your domain in browser settings, then reload.

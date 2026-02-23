@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { Nav } from "@/components/Nav";
 import Link from "next/link";
+import Image from "next/image";
 import { useTheme, type ThemePreference } from "@/components/ThemeProvider";
 
 export function AuthHeader() {
@@ -11,16 +12,25 @@ export function AuthHeader() {
 
   const themeIcon = resolvedTheme === "dark" ? "☾" : "☼";
   const themeLabel = theme === "system" ? "System" : theme === "dark" ? "Dark" : "Light";
+  const logoSrc = resolvedTheme === "dark" ? "/logo-wordmark-dark.svg" : "/logo-wordmark-light.svg";
 
   return (
     <header className="nav overflow-visible">
       <div className="container flex items-center justify-between gap-3 h-full min-h-[72px] overflow-visible">
-        <a
+        <Link
           href="/"
-          className="font-display text-2xl font-medium text-obsidian tracking-tight hover:text-sage transition-colors"
+          className="inline-flex items-center h-11 w-[148px] shrink-0"
+          aria-label="Vigil home"
         >
-          Vigil
-        </a>
+          <Image
+            src={logoSrc}
+            alt="Vigil"
+            width={148}
+            height={42}
+            priority
+            className="h-10 w-auto"
+          />
+        </Link>
 
         {status === "authenticated" && session?.user ? (
           <div className="flex items-center gap-3 min-w-0 overflow-visible">
